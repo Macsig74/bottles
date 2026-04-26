@@ -6,17 +6,20 @@ export type Database = {
           id: string
           name: string
           instrument: string | null
+          is_admin: boolean
           created_at: string
         }
         Insert: {
           id: string
           name: string
           instrument?: string | null
+          is_admin?: boolean
           created_at?: string
         }
         Update: {
           name?: string
           instrument?: string | null
+          is_admin?: boolean
         }
       }
       rehearsal_sessions: {
@@ -110,6 +113,121 @@ export type Database = {
           instrument?: string
         }
       }
+      music_proposals: {
+        Row: {
+          id: string
+          title: string
+          artist: string
+          youtube_url: string | null
+          notes: string | null
+          proposed_by: string
+          status: 'open' | 'accepted' | 'rejected'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          artist: string
+          youtube_url?: string | null
+          notes?: string | null
+          proposed_by: string
+          status?: 'open' | 'accepted' | 'rejected'
+          created_at?: string
+        }
+        Update: {
+          title?: string
+          artist?: string
+          youtube_url?: string | null
+          notes?: string | null
+          status?: 'open' | 'accepted' | 'rejected'
+        }
+      }
+      proposal_votes: {
+        Row: {
+          id: string
+          proposal_id: string
+          user_id: string
+          vote: 'yes' | 'no'
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          proposal_id: string
+          user_id: string
+          vote: 'yes' | 'no'
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          vote?: 'yes' | 'no'
+          reason?: string | null
+        }
+      }
+      proposal_comments: {
+        Row: {
+          id: string
+          proposal_id: string
+          user_id: string
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          proposal_id: string
+          user_id: string
+          content: string
+          created_at?: string
+        }
+        Update: {
+          content?: string
+        }
+      }
+      library_folders: {
+        Row: {
+          id: string
+          name: string
+          parent_id: string | null
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          parent_id?: string | null
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          name?: string
+        }
+      }
+      library_files: {
+        Row: {
+          id: string
+          name: string
+          folder_id: string | null
+          file_url: string
+          file_type: string
+          file_size: number
+          uploaded_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          folder_id?: string | null
+          file_url: string
+          file_type: string
+          file_size: number
+          uploaded_by: string
+          created_at?: string
+        }
+        Update: {
+          name?: string
+          folder_id?: string | null
+        }
+      }
     }
   }
 }
@@ -119,3 +237,8 @@ export type RehearsalSession = Database['public']['Tables']['rehearsal_sessions'
 export type SessionVote = Database['public']['Tables']['session_votes']['Row']
 export type Song = Database['public']['Tables']['songs']['Row']
 export type SheetMusic = Database['public']['Tables']['sheet_music']['Row']
+export type MusicProposal = Database['public']['Tables']['music_proposals']['Row']
+export type ProposalVote = Database['public']['Tables']['proposal_votes']['Row']
+export type ProposalComment = Database['public']['Tables']['proposal_comments']['Row']
+export type LibraryFolder = Database['public']['Tables']['library_folders']['Row']
+export type LibraryFile = Database['public']['Tables']['library_files']['Row']

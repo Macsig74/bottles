@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Music2, CalendarDays, ListMusic, LogOut } from 'lucide-react'
+import { Music2, CalendarDays, ListMusic, LogOut, ThumbsUp, FolderOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export function Navbar() {
@@ -20,6 +20,8 @@ export function Navbar() {
     { href: '/', label: 'Accueil', icon: Music2 },
     { href: '/rehearsals', label: 'Répétitions', icon: CalendarDays },
     { href: '/playlist', label: 'Playlist', icon: ListMusic },
+    { href: '/proposals', label: 'Propositions', icon: ThumbsUp },
+    { href: '/library', label: 'Bibliothèque', icon: FolderOpen },
   ]
 
   return (
