@@ -11,7 +11,7 @@ async function getBreadcrumb(
   let currentId: string | null = folderId
 
   while (currentId) {
-    const { data } = await supabase
+    const { data }: { data: { id: string; name: string; parent_id: string | null } | null } = await supabase
       .from('library_folders')
       .select('id, name, parent_id')
       .eq('id', currentId)
