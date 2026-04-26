@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, Loader2, Wifi, WifiOff } from 'lucide-react'
 
 interface Vote {
   id: string
@@ -22,31 +21,64 @@ interface Props {
   proposalStatus: string
 }
 
-export function ProposalVoteSection({ proposalId, userId, myVote, yesVotes, noVotes, proposalStatus }: Props) {
-  const router = useRouter()
+export function ProposalVoteSection({ proposalId, userId, myVote: initialMyVote, yesVotes: initialYes, noVotes: initialNo, proposalStatus }: Props) {
   const supabase = createClient()
+
+  const [yesVotes, setYesVotes] = useState<Vote[]>(initialYes)
+  const [noVotes, setNoVotes] = useState<Vote[]>(initialNo)
+  const [myVote, setMyVote] = useState<Vote | null>(initialMyVote)
 
   const [pendingVote, setPendingVote] = useState<'yes' | 'no' | null>(null)
   const [reason, setReason] = useState('')
   const [showReasonInput, setShowReasonInput] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [connected, setConnected] = useState(true)
 
   const isClosed = proposalStatus !== 'open'
+
+  const fetchVotes = useCallback(async () => {
+    const { data } = await supabase
+      .from('proposal_votes')
+      .select('*, profiles(name)')
+      .eq('proposal_id', proposalId)
+      .order('created_at', { ascending: true })
+
+    if (data) {
+      const yes = data.filter((v: Vote) => v.vote === 'yes')
+      const no = data.filter((v: Vote) => v.vote === 'no')
+      setYesVotes(yes)
+      setNoVotes(no)
+      setMyVote(data.find((v: Vote) => v.user_id === userId) ?? null)
+    }
+  }, [proposalId, userId, supabase])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`votes-${proposalId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'proposal_votes', filter: `proposal_id=eq.${proposalId}` },
+        () => { fetchVotes() }
+      )
+      .subscribe((status) => {
+        setConnected(status === 'SUBSCRIBED')
+      })
+
+    return () => { supabase.removeChannel(channel) }
+  }, [proposalId, fetchVotes, supabase])
 
   async function submitVote(vote: 'yes' | 'no', reasonText?: string) {
     setLoading(true)
     setError('')
 
     if (myVote) {
-      // Update existing vote
       const { error: err } = await supabase
         .from('proposal_votes')
         .update({ vote, reason: reasonText ?? null })
         .eq('id', myVote.id)
       if (err) { setError(err.message); setLoading(false); return }
     } else {
-      // Insert new vote
       const { error: err } = await supabase
         .from('proposal_votes')
         .insert({ proposal_id: proposalId, user_id: userId, vote, reason: reasonText ?? null })
@@ -57,7 +89,7 @@ export function ProposalVoteSection({ proposalId, userId, myVote, yesVotes, noVo
     setPendingVote(null)
     setShowReasonInput(false)
     setReason('')
-    router.refresh()
+    // realtime will update the UI automatically
   }
 
   async function handleVoteClick(vote: 'yes' | 'no') {
@@ -79,7 +111,13 @@ export function ProposalVoteSection({ proposalId, userId, myVote, yesVotes, noVo
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 mb-4">
-      <h2 className="font-semibold text-white mb-4">Votes</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold text-white">Votes</h2>
+        <span className={`flex items-center gap-1 text-xs ${connected ? 'text-emerald-400' : 'text-zinc-500'}`}>
+          {connected ? <Wifi size={12} /> : <WifiOff size={12} />}
+          {connected ? 'En direct' : 'Reconnexion...'}
+        </span>
+      </div>
 
       {!isClosed && (
         <div className="mb-5">
@@ -145,13 +183,10 @@ export function ProposalVoteSection({ proposalId, userId, myVote, yesVotes, noVo
             </form>
           )}
 
-          {error && (
-            <p className="mt-2 text-red-400 text-sm">{error}</p>
-          )}
+          {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
         </div>
       )}
 
-      {/* Vote results */}
       <div className="space-y-4">
         {yesVotes.length > 0 && (
           <div>
@@ -177,9 +212,7 @@ export function ProposalVoteSection({ proposalId, userId, myVote, yesVotes, noVo
               {noVotes.map(v => (
                 <div key={v.id} className="bg-red-500/5 border border-red-500/20 rounded-xl px-3 py-2">
                   <span className="text-red-400 text-xs font-medium">{(v.profiles as any)?.name ?? 'Inconnu'}</span>
-                  {v.reason && (
-                    <p className="text-zinc-400 text-sm mt-0.5">{v.reason}</p>
-                  )}
+                  {v.reason && <p className="text-zinc-400 text-sm mt-0.5">{v.reason}</p>}
                 </div>
               ))}
             </div>

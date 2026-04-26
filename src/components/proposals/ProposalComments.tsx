@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { MessageCircle, Send, Loader2, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -21,13 +20,36 @@ interface Props {
   comments: Comment[]
 }
 
-export function ProposalComments({ proposalId, userId, comments }: Props) {
-  const router = useRouter()
+export function ProposalComments({ proposalId, userId, comments: initialComments }: Props) {
   const supabase = createClient()
 
+  const [comments, setComments] = useState<Comment[]>(initialComments)
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const fetchComments = useCallback(async () => {
+    const { data } = await supabase
+      .from('proposal_comments')
+      .select('*, profiles(name)')
+      .eq('proposal_id', proposalId)
+      .order('created_at', { ascending: true })
+
+    if (data) setComments(data as Comment[])
+  }, [proposalId, supabase])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`comments-${proposalId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'proposal_comments', filter: `proposal_id=eq.${proposalId}` },
+        () => { fetchComments() }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [proposalId, fetchComments, supabase])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -42,14 +64,14 @@ export function ProposalComments({ proposalId, userId, comments }: Props) {
 
     setContent('')
     setLoading(false)
-    router.refresh()
+    // realtime will update the list automatically
   }
 
   async function handleDelete(commentId: string) {
     setDeletingId(commentId)
     await supabase.from('proposal_comments').delete().eq('id', commentId)
     setDeletingId(null)
-    router.refresh()
+    // realtime will update the list automatically
   }
 
   return (
