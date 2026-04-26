@@ -202,6 +202,29 @@ export type Database = {
           name?: string
         }
       }
+      treasury_transactions: {
+        Row: {
+          id: string
+          amount: number
+          description: string
+          type: 'income' | 'expense' | 'adjustment'
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          amount: number
+          description: string
+          type: 'income' | 'expense' | 'adjustment'
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          amount?: number
+          description?: string
+          type?: 'income' | 'expense' | 'adjustment'
+        }
+      }
       library_files: {
         Row: {
           id: string
@@ -242,3 +265,4 @@ export type ProposalVote = Database['public']['Tables']['proposal_votes']['Row']
 export type ProposalComment = Database['public']['Tables']['proposal_comments']['Row']
 export type LibraryFolder = Database['public']['Tables']['library_folders']['Row']
 export type LibraryFile = Database['public']['Tables']['library_files']['Row']
+export type TreasuryTransaction = Database['public']['Tables']['treasury_transactions']['Row']
