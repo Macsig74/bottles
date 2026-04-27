@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, Minus, SlidersHorizontal, Loader2, Trash2, TrendingUp, TrendingDown, ArrowLeftRight } from 'lucide-react'
+import { Plus, Minus, SlidersHorizontal, Loader2, Trash2, TrendingUp, TrendingDown, ArrowLeftRight, Wallet } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
