@@ -74,6 +74,7 @@ export type Database = {
           artist: string
           notes: string | null
           added_by: string | null
+          position: number | null
           created_at: string
         }
         Insert: {
@@ -82,12 +83,14 @@ export type Database = {
           artist: string
           notes?: string | null
           added_by?: string | null
+          position?: number | null
           created_at?: string
         }
         Update: {
           title?: string
           artist?: string
           notes?: string | null
+          position?: number | null
         }
       }
       sheet_music: {
