@@ -387,7 +387,7 @@ export function TreasuryClient({
                         {displayAmount >= 0 ? "+" : ""}
                         {displayAmount.toFixed(2)} €
                       </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all ml-1">
+                      <div className="flex items-center gap-1 ml-1">
                         <button
                           onClick={() => startEdit(t)}
                           className="text-zinc-600 hover:text-amber-400 transition-colors"
