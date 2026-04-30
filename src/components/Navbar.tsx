@@ -60,17 +60,17 @@ export function Navbar() {
         </button>
       </div>
       {/* Mobile nav */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 flex">
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur border-t border-zinc-800 flex">
         {links.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
-            className={`flex-1 flex flex-col items-center gap-1 py-2 text-xs transition-colors ${
-              pathname === href ? 'text-amber-400' : 'text-zinc-500'
+            aria-label={label}
+            className={`flex-1 flex items-center justify-center py-4 transition-colors ${
+              pathname === href ? 'text-amber-400' : 'text-zinc-500 active:text-zinc-300'
             }`}
           >
-            <Icon size={20} />
-            {label}
+            <Icon size={22} strokeWidth={pathname === href ? 2.5 : 1.8} />
           </Link>
         ))}
       </div>

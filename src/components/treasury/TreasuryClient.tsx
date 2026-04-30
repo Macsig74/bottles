@@ -264,8 +264,8 @@ export function TreasuryClient({
             {mode === "adjustment" &&
               "Définir le solde actuel (ex: caisse de départ)"}
           </p>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative sm:flex-1">
               <input
                 type="number"
                 step="0.01"
@@ -273,7 +273,7 @@ export function TreasuryClient({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 pr-8 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 pr-8 text-base text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
                 autoFocus
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
@@ -291,7 +291,7 @@ export function TreasuryClient({
                     ? "Objet (ex: câbles)"
                     : "Note (ex: solde initial)"
               }
-              className="flex-[2] bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
+              className="sm:flex-[2] bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-base text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
             />
           </div>
           {error && <p className="text-red-400 text-sm">{error}</p>}
@@ -323,20 +323,20 @@ export function TreasuryClient({
                 <li key={t.id} className="group px-4 py-3">
                   {isEditing ? (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <div
                           className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${cfg.bg}`}
                         >
                           <Icon size={14} className={cfg.color} />
                         </div>
-                        <div className="relative">
+                        <div className="relative shrink-0">
                           <input
                             type="number"
                             step="0.01"
                             min="0"
                             value={editAmount}
                             onChange={(e) => setEditAmount(e.target.value)}
-                            className="w-28 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 pr-7 text-white text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                            className="w-24 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 pr-7 text-base text-white focus:outline-none focus:border-amber-500 transition-colors"
                             autoFocus
                           />
                           <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">€</span>
@@ -345,21 +345,23 @@ export function TreasuryClient({
                           type="text"
                           value={editDescription}
                           onChange={(e) => setEditDescription(e.target.value)}
-                          className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                          className="flex-1 min-w-[120px] bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-base text-white focus:outline-none focus:border-amber-500 transition-colors"
                         />
-                        <button
-                          onClick={() => handleEdit(t.id)}
-                          disabled={editLoading}
-                          className="text-emerald-400 hover:text-emerald-300 disabled:opacity-50 transition-colors"
-                        >
-                          {editLoading ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="text-zinc-500 hover:text-zinc-300 transition-colors"
-                        >
-                          <X size={15} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEdit(t.id)}
+                            disabled={editLoading}
+                            className="p-2 text-emerald-400 hover:text-emerald-300 disabled:opacity-50 transition-colors"
+                          >
+                            {editLoading ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                          >
+                            <X size={15} />
+                          </button>
+                        </div>
                       </div>
                       {editError && <p className="text-red-400 text-xs pl-10">{editError}</p>}
                     </div>

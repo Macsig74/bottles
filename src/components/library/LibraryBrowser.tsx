@@ -191,7 +191,8 @@ export function LibraryBrowser({ userId, isAdmin, initialFolders, initialFiles, 
           onClick={() => setShowFolderInput(v => !v)}
           className="flex items-center gap-2 text-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-2 rounded-xl transition-colors"
         >
-          <FolderPlus size={15} /> Nouveau dossier
+          <FolderPlus size={15} />
+          <span className="hidden sm:inline">Nouveau </span>Dossier
         </button>
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -199,7 +200,7 @@ export function LibraryBrowser({ userId, isAdmin, initialFolders, initialFiles, 
           className="flex items-center gap-2 text-sm bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black font-semibold px-3 py-2 rounded-xl transition-colors"
         >
           {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
-          {uploading ? uploadProgress || 'Upload...' : 'Ajouter un fichier'}
+          {uploading ? uploadProgress || 'Upload...' : <><span className="hidden sm:inline">Ajouter un </span>Fichier</>}
         </button>
         <input
           ref={fileInputRef}
@@ -220,7 +221,7 @@ export function LibraryBrowser({ userId, isAdmin, initialFolders, initialFiles, 
             onKeyDown={e => e.key === 'Enter' && createFolder()}
             placeholder="Nom du dossier"
             autoFocus
-            className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-amber-500 transition-colors"
+            className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-base text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
           />
           <button
             onClick={createFolder}
@@ -265,7 +266,7 @@ export function LibraryBrowser({ userId, isAdmin, initialFolders, initialFiles, 
                   <button
                     onClick={() => deleteFolder(f.id)}
                     disabled={deletingId === f.id}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all disabled:opacity-50"
+                    className="absolute top-2 right-2 text-zinc-500 sm:opacity-0 sm:group-hover:opacity-100 hover:text-red-400 transition-all disabled:opacity-50"
                   >
                     {deletingId === f.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                   </button>
@@ -309,7 +310,7 @@ export function LibraryBrowser({ userId, isAdmin, initialFolders, initialFiles, 
                   <button
                     onClick={() => deleteFile(f)}
                     disabled={deletingId === f.id}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all disabled:opacity-50"
+                    className="shrink-0 text-zinc-500 sm:opacity-0 sm:group-hover:opacity-100 hover:text-red-400 transition-all disabled:opacity-50"
                   >
                     {deletingId === f.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                   </button>

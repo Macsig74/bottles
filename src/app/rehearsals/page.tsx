@@ -27,7 +27,8 @@ export default async function RehearsalsPage() {
           className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
         >
           <Plus size={16} />
-          Proposer une date
+          <span className="hidden sm:inline">Proposer une date</span>
+          <span className="sm:hidden">Proposer</span>
         </Link>
       </div>
 

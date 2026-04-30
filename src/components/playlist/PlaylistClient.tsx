@@ -83,7 +83,7 @@ function EditModal({
             type="text"
             value={title}
             onChange={e => setTitle(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-base text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
           />
         </div>
 
@@ -93,7 +93,7 @@ function EditModal({
             type="text"
             value={artist}
             onChange={e => setArtist(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-base text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
           />
         </div>
 
