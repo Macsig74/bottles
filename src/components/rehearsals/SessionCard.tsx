@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
@@ -37,6 +37,15 @@ export function SessionCard({
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [dateDisplay, setDateDisplay] = useState<{ label: string; time: string } | null>(null)
+
+  useEffect(() => {
+    const d = new Date(session.proposed_date)
+    setDateDisplay({
+      label: format(d, 'EEEE d MMMM', { locale: fr }),
+      time: format(d, 'HH:mm'),
+    })
+  }, [session.proposed_date])
 
   const myVote = session.session_votes?.find(v => v.user_id === userId)
   const isPast = new Date(session.proposed_date) < new Date()
@@ -93,14 +102,14 @@ export function SessionCard({
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-lg font-bold capitalize ${iCantGo ? 'line-through text-zinc-500' : 'text-white'}`}>
-              {format(new Date(session.proposed_date), 'EEEE d MMMM', { locale: fr })}
+              {dateDisplay?.label ?? '…'}
             </span>
             {!isConfirmed && (
               <span className="text-xs text-zinc-500">{STATUS_LABELS[session.status]}</span>
             )}
           </div>
           <div className={`font-semibold ${iCantGo ? 'text-zinc-600 line-through' : 'text-amber-400'}`}>
-            {format(new Date(session.proposed_date), 'HH:mm')}
+            {dateDisplay?.time ?? '…'}
           </div>
           {session.profiles && (
             <div className="flex items-center gap-1.5 text-xs text-zinc-500 mt-1.5">
