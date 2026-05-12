@@ -15,9 +15,26 @@ import {
   Pencil,
   Check,
   X,
+  GripVertical,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Transaction {
   id: string;
@@ -26,6 +43,7 @@ interface Transaction {
   type: "income" | "expense" | "adjustment";
   created_by: string;
   created_at: string;
+  position: number | null;
   profiles: { name: string } | null;
 }
 
@@ -35,7 +53,6 @@ interface Props {
   initialTransactions: Transaction[];
   initialBalance: number;
 }
-
 
 function computeBalance(txs: Transaction[]) {
   return txs.reduce((sum, t) => {
@@ -47,6 +64,173 @@ function computeBalance(txs: Transaction[]) {
 
 type Mode = "income" | "expense" | "adjustment" | null;
 
+const typeConfig = {
+  income: {
+    label: "Entrée",
+    icon: TrendingUp,
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+  },
+  expense: {
+    label: "Dépense",
+    icon: TrendingDown,
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+  },
+  adjustment: {
+    label: "Ajustement",
+    icon: ArrowLeftRight,
+    color: "text-blue-400",
+    bg: "bg-blue-500/10 border-blue-500/20",
+  },
+};
+
+function SortableRow({
+  t,
+  editingId,
+  editAmount,
+  editDescription,
+  editLoading,
+  editError,
+  deletingId,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  onDelete,
+  setEditAmount,
+  setEditDescription,
+}: {
+  t: Transaction;
+  editingId: string | null;
+  editAmount: string;
+  editDescription: string;
+  editLoading: boolean;
+  editError: string;
+  deletingId: string | null;
+  onStartEdit: (t: Transaction) => void;
+  onCancelEdit: () => void;
+  onSaveEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  setEditAmount: (v: string) => void;
+  setEditDescription: (v: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: t.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.85 : 1,
+  };
+
+  const cfg = typeConfig[t.type];
+  const Icon = cfg.icon;
+  const displayAmount =
+    t.type === "expense" ? -Number(t.amount) : Number(t.amount);
+  const isEditing = editingId === t.id;
+
+  return (
+    <li ref={setNodeRef} style={style} className="group px-3 py-3">
+      {isEditing ? (
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${cfg.bg}`}
+            >
+              <Icon size={14} className={cfg.color} />
+            </div>
+            <div className="relative shrink-0">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+                className="w-24 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 pr-7 text-base text-white focus:outline-none focus:border-amber-500 transition-colors"
+                autoFocus
+              />
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">€</span>
+            </div>
+            <input
+              type="text"
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              className="flex-1 min-w-[120px] bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-base text-white focus:outline-none focus:border-amber-500 transition-colors"
+            />
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onSaveEdit(t.id)}
+                disabled={editLoading}
+                className="p-2 text-emerald-400 hover:text-emerald-300 disabled:opacity-50 transition-colors"
+              >
+                {editLoading ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+              </button>
+              <button
+                onClick={onCancelEdit}
+                className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+          {editError && <p className="text-red-400 text-xs pl-10">{editError}</p>}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          {/* Drag handle */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="touch-none shrink-0 text-zinc-700 hover:text-zinc-400 active:text-amber-400 cursor-grab active:cursor-grabbing p-1 rounded-lg"
+            aria-label="Réordonner"
+          >
+            <GripVertical size={16} />
+          </button>
+
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center border ${cfg.bg} shrink-0`}
+          >
+            <Icon size={14} className={cfg.color} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm text-white truncate">{t.description}</div>
+            <div className="text-xs text-zinc-500 mt-0.5">
+              {(t.profiles as any)?.name} ·{" "}
+              {format(new Date(t.created_at), "d MMM yyyy, HH:mm", { locale: fr })}
+            </div>
+          </div>
+          <span
+            className={`text-sm font-semibold tabular-nums ${displayAmount >= 0 ? "text-emerald-400" : "text-red-400"}`}
+          >
+            {displayAmount >= 0 ? "+" : ""}
+            {displayAmount.toFixed(2)} €
+          </span>
+          <div className="flex items-center gap-1 ml-1">
+            <button
+              onClick={() => onStartEdit(t)}
+              className="text-zinc-600 hover:text-amber-400 transition-colors p-1"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              onClick={() => onDelete(t.id)}
+              disabled={deletingId === t.id}
+              className="text-zinc-600 hover:text-red-400 transition-colors disabled:opacity-50 p-1"
+            >
+              {deletingId === t.id ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Trash2 size={14} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+    </li>
+  );
+}
+
 export function TreasuryClient({
   userId,
   isAdmin,
@@ -55,8 +239,9 @@ export function TreasuryClient({
 }: Props) {
   const supabase = createClient();
 
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(initialTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    [...initialTransactions].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+  );
   const [balance, setBalance] = useState(initialBalance);
 
   const [mode, setMode] = useState<Mode>(null);
@@ -76,7 +261,7 @@ export function TreasuryClient({
     const { data } = await supabase
       .from("treasury_transactions")
       .select("*, profiles(name)")
-      .order("created_at", { ascending: false });
+      .order("position", { ascending: true });
     if (data) {
       setTransactions(data as Transaction[]);
       setBalance(computeBalance(data as Transaction[]));
@@ -89,42 +274,53 @@ export function TreasuryClient({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "treasury_transactions" },
-        () => {
-          fetchTransactions();
-        },
+        () => { fetchTransactions(); }
       )
       .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchTransactions, supabase]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  );
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = transactions.findIndex((t) => t.id === active.id);
+    const newIndex = transactions.findIndex((t) => t.id === over.id);
+    const reordered = arrayMove(transactions, oldIndex, newIndex);
+    setTransactions(reordered);
+    setBalance(computeBalance(reordered));
+
+    await Promise.all(
+      reordered.map((t, i) =>
+        supabase.from("treasury_transactions").update({ position: i + 1 }).eq("id", t.id)
+      )
+    );
+  }, [transactions, supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     const parsed = parseFloat(amount.replace(",", "."));
-    if (isNaN(parsed) || parsed <= 0) {
-      setError("Montant invalide.");
-      return;
-    }
-    if (!description.trim()) {
-      setError("La description est obligatoire.");
-      return;
-    }
+    if (isNaN(parsed) || parsed <= 0) { setError("Montant invalide."); return; }
+    if (!description.trim()) { setError("La description est obligatoire."); return; }
     if (!mode) return;
 
     setLoading(true);
+    const maxPos = transactions.reduce((m, t) => Math.max(m, t.position ?? 0), 0);
     const { error: err } = await supabase.from("treasury_transactions").insert({
       amount: parsed,
       description: description.trim(),
       type: mode,
       created_by: userId,
+      position: maxPos + 1,
     });
     setLoading(false);
-    if (err) {
-      setError(err.message);
-      return;
-    }
+    if (err) { setError(err.message); return; }
     setAmount("");
     setDescription("");
     setMode(null);
@@ -152,14 +348,8 @@ export function TreasuryClient({
 
   async function handleEdit(id: string) {
     const parsed = parseFloat(editAmount.replace(",", "."));
-    if (isNaN(parsed) || parsed <= 0) {
-      setEditError("Montant invalide.");
-      return;
-    }
-    if (!editDescription.trim()) {
-      setEditError("Description obligatoire.");
-      return;
-    }
+    if (isNaN(parsed) || parsed <= 0) { setEditError("Montant invalide."); return; }
+    if (!editDescription.trim()) { setEditError("Description obligatoire."); return; }
     setEditLoading(true);
     setEditError("");
     const { error: err } = await supabase
@@ -167,51 +357,21 @@ export function TreasuryClient({
       .update({ amount: parsed, description: editDescription.trim() })
       .eq("id", id);
     setEditLoading(false);
-    if (err) {
-      setEditError(err.message);
-      return;
-    }
+    if (err) { setEditError(err.message); return; }
     cancelEdit();
   }
-
-  const typeConfig = {
-    income: {
-      label: "Entrée",
-      icon: TrendingUp,
-      color: "text-emerald-400",
-      bg: "bg-emerald-500/10 border-emerald-500/20",
-      sign: "+",
-    },
-    expense: {
-      label: "Dépense",
-      icon: TrendingDown,
-      color: "text-red-400",
-      bg: "bg-red-500/10 border-red-500/20",
-      sign: "-",
-    },
-    adjustment: {
-      label: "Ajustement",
-      icon: ArrowLeftRight,
-      color: "text-blue-400",
-      bg: "bg-blue-500/10 border-blue-500/20",
-      sign: "=",
-    },
-  };
 
   return (
     <div className="space-y-4">
       {/* Balance card */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center">
         <p className="text-zinc-400 text-sm mb-1">Solde actuel</p>
-        <p
-          className={`text-5xl font-bold tracking-tight ${balance >= 0 ? "text-emerald-400" : "text-red-400"}`}
-        >
+        <p className={`text-5xl font-bold tracking-tight ${balance >= 0 ? "text-emerald-400" : "text-red-400"}`}>
           {balance >= 0 ? "+" : ""}
           {balance.toFixed(2)} €
         </p>
         <p className="text-zinc-600 text-xs mt-2">
-          {transactions.length} transaction
-          {transactions.length !== 1 ? "s" : ""}
+          {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
         </p>
       </div>
 
@@ -261,8 +421,7 @@ export function TreasuryClient({
           <p className="text-sm font-medium text-zinc-300">
             {mode === "income" && "Ajouter une entrée d'argent"}
             {mode === "expense" && "Enregistrer une dépense"}
-            {mode === "adjustment" &&
-              "Définir le solde actuel (ex: caisse de départ)"}
+            {mode === "adjustment" && "Définir le solde actuel (ex: caisse de départ)"}
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative sm:flex-1">
@@ -276,9 +435,7 @@ export function TreasuryClient({
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 pr-8 text-base text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
                 autoFocus
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">
-                €
-              </span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">€</span>
             </div>
             <input
               type="text"
@@ -312,108 +469,30 @@ export function TreasuryClient({
           <div className="px-4 py-3 border-b border-zinc-800">
             <h2 className="text-sm font-semibold text-zinc-300">Historique</h2>
           </div>
-          <ul className="divide-y divide-zinc-800">
-            {transactions.map((t) => {
-              const cfg = typeConfig[t.type];
-              const Icon = cfg.icon;
-              const displayAmount =
-                t.type === "expense" ? -Number(t.amount) : Number(t.amount);
-              const isEditing = editingId === t.id;
-              return (
-                <li key={t.id} className="group px-4 py-3">
-                  {isEditing ? (
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${cfg.bg}`}
-                        >
-                          <Icon size={14} className={cfg.color} />
-                        </div>
-                        <div className="relative shrink-0">
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={editAmount}
-                            onChange={(e) => setEditAmount(e.target.value)}
-                            className="w-24 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 pr-7 text-base text-white focus:outline-none focus:border-amber-500 transition-colors"
-                            autoFocus
-                          />
-                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">€</span>
-                        </div>
-                        <input
-                          type="text"
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          className="flex-1 min-w-[120px] bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-base text-white focus:outline-none focus:border-amber-500 transition-colors"
-                        />
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleEdit(t.id)}
-                            disabled={editLoading}
-                            className="p-2 text-emerald-400 hover:text-emerald-300 disabled:opacity-50 transition-colors"
-                          >
-                            {editLoading ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                          >
-                            <X size={15} />
-                          </button>
-                        </div>
-                      </div>
-                      {editError && <p className="text-red-400 text-xs pl-10">{editError}</p>}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center border ${cfg.bg}`}
-                      >
-                        <Icon size={14} className={cfg.color} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-white truncate">
-                          {t.description}
-                        </div>
-                        <div className="text-xs text-zinc-500 mt-0.5">
-                          {(t.profiles as any)?.name} ·{" "}
-                          {format(new Date(t.created_at), "d MMM yyyy, HH:mm", {
-                            locale: fr,
-                          })}
-                        </div>
-                      </div>
-                      <span
-                        className={`text-sm font-semibold tabular-nums ${displayAmount >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                      >
-                        {displayAmount >= 0 ? "+" : ""}
-                        {displayAmount.toFixed(2)} €
-                      </span>
-                      <div className="flex items-center gap-1 ml-1">
-                        <button
-                          onClick={() => startEdit(t)}
-                          className="text-zinc-600 hover:text-amber-400 transition-colors"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(t.id)}
-                          disabled={deletingId === t.id}
-                          className="text-zinc-600 hover:text-red-400 transition-colors disabled:opacity-50"
-                        >
-                          {deletingId === t.id ? (
-                            <Loader2 size={14} className="animate-spin" />
-                          ) : (
-                            <Trash2 size={14} />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={transactions.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+              <ul className="divide-y divide-zinc-800">
+                {transactions.map((t) => (
+                  <SortableRow
+                    key={t.id}
+                    t={t}
+                    editingId={editingId}
+                    editAmount={editAmount}
+                    editDescription={editDescription}
+                    editLoading={editLoading}
+                    editError={editError}
+                    deletingId={deletingId}
+                    onStartEdit={startEdit}
+                    onCancelEdit={cancelEdit}
+                    onSaveEdit={handleEdit}
+                    onDelete={handleDelete}
+                    setEditAmount={setEditAmount}
+                    setEditDescription={setEditDescription}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         </div>
       )}
 

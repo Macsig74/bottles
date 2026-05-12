@@ -1,7 +1,15 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { CalendarDays, ListMusic, Plus } from 'lucide-react'
-import { format } from 'date-fns'
+import { CalendarDays, ListMusic, Plus, Music2 } from 'lucide-react'
+import { format, differenceInDays, parseISO } from 'date-fns'
+import { fr } from 'date-fns/locale'
+
+const CONCERT_DATES = [
+  '2026-05-30',
+  '2026-10-31',
+  '2026-12-05',
+  '2027-06-20',
+]
 
 export default async function Home() {
   const supabase = await createClient()
@@ -26,6 +34,12 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(5)
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const upcomingConcerts = CONCERT_DATES
+    .map(d => parseISO(d))
+    .filter(d => d >= today)
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 pb-24 sm:pb-8">
       <div className="mb-8">
@@ -34,6 +48,31 @@ export default async function Home() {
         </h1>
         <p className="text-zinc-400 mt-1">Content de te revoir</p>
       </div>
+
+      {/* Concerts */}
+      {upcomingConcerts.length > 0 && (
+        <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-6">
+          <div className="flex items-center gap-2 text-amber-400 font-semibold mb-4">
+            <Music2 size={18} />
+            Prochains concerts
+          </div>
+          <ul className="space-y-2">
+            {upcomingConcerts.map((d, i) => {
+              const days = differenceInDays(d, today)
+              return (
+                <li key={i} className="flex items-center justify-between">
+                  <span className="text-white font-medium capitalize">
+                    {format(d, 'EEEE d MMMM yyyy', { locale: fr })}
+                  </span>
+                  <span className="text-xs text-zinc-500 shrink-0 ml-3">
+                    {days === 0 ? "aujourd'hui !" : `dans ${days} jour${days > 1 ? 's' : ''}`}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-6">
         {/* Upcoming rehearsals */}

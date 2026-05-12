@@ -5,6 +5,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { ProposalVoteSection } from '@/components/proposals/ProposalVoteSection'
 import { ProposalComments } from '@/components/proposals/ProposalComments'
 import { ProposalStatusControl } from '@/components/proposals/ProposalStatusControl'
+import { ProposalEditDelete } from '@/components/proposals/ProposalEditDelete'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -109,6 +110,17 @@ export default async function ProposalDetailPage({ params }: { params: Promise<{
             />
           </div>
         )}
+
+        <ProposalEditDelete
+          proposalId={id}
+          proposedBy={proposal.proposed_by}
+          userId={user.id}
+          isAdmin={profile?.is_admin ?? false}
+          currentTitle={proposal.title}
+          currentArtist={proposal.artist}
+          currentNotes={proposal.notes}
+          currentYoutubeUrl={proposal.youtube_url}
+        />
       </div>
 
       {/* Voting */}

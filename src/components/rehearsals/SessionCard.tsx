@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { User, CheckCircle2, XCircle, Clock, Pin } from 'lucide-react'
+import { User, CheckCircle2, XCircle, Clock, Pin, Pencil, Trash2, Loader2, X, Check } from 'lucide-react'
 
 type Vote = { user_id: string; can_attend: boolean; profiles: { name: string } | null }
 type Session = {
@@ -39,6 +39,18 @@ export function SessionCard({
   const [confirming, setConfirming] = useState(false)
   const [dateDisplay, setDateDisplay] = useState<{ label: string; time: string } | null>(null)
 
+  // Edit state
+  const [isEditing, setIsEditing] = useState(false)
+  const [editDate, setEditDate] = useState('')
+  const [editTime, setEditTime] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  // Delete state
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
   useEffect(() => {
     const d = new Date(session.proposed_date)
     setDateDisplay({
@@ -50,6 +62,39 @@ export function SessionCard({
   const myVote = session.session_votes?.find(v => v.user_id === userId)
   const isPast = new Date(session.proposed_date) < new Date()
   const iCantGo = myVote?.can_attend === false
+  const isConfirmed = session.status === 'confirmed'
+  const canEditDelete = isAdmin || session.proposed_by === userId
+
+  function openEdit() {
+    const d = new Date(session.proposed_date)
+    setEditDate(format(d, 'yyyy-MM-dd'))
+    setEditTime(format(d, 'HH:mm'))
+    setEditNotes(session.notes ?? '')
+    setEditError('')
+    setIsEditing(true)
+  }
+
+  async function handleSaveEdit() {
+    if (!editDate || !editTime) { setEditError('Date et heure obligatoires.'); return }
+    const newDate = new Date(`${editDate}T${editTime}:00`)
+    if (isNaN(newDate.getTime())) { setEditError('Date invalide.'); return }
+    setEditLoading(true)
+    setEditError('')
+    const { error } = await supabase
+      .from('rehearsal_sessions')
+      .update({ proposed_date: newDate.toISOString(), notes: editNotes.trim() || null })
+      .eq('id', session.id)
+    setEditLoading(false)
+    if (error) { setEditError(error.message); return }
+    setIsEditing(false)
+    router.refresh()
+  }
+
+  async function handleDelete() {
+    setDeleteLoading(true)
+    await supabase.from('rehearsal_sessions').delete().eq('id', session.id)
+    router.refresh()
+  }
 
   async function vote(canAttend: boolean) {
     setLoading(true)
@@ -78,7 +123,96 @@ export function SessionCard({
     setConfirming(false)
   }
 
-  const isConfirmed = session.status === 'confirmed'
+  // Edit modal
+  if (isEditing) {
+    return (
+      <div className="rounded-2xl p-5 border bg-zinc-900 border-amber-500/40">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-white">Modifier la répétition</h3>
+          <button onClick={() => setIsEditing(false)} className="text-zinc-500 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-xs text-zinc-400 mb-1">Date</label>
+              <input
+                type="date"
+                value={editDate}
+                onChange={e => setEditDate(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors"
+              />
+            </div>
+            <div className="w-28">
+              <label className="block text-xs text-zinc-400 mb-1">Heure</label>
+              <input
+                type="time"
+                value={editTime}
+                onChange={e => setEditTime(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Notes</label>
+            <input
+              type="text"
+              value={editNotes}
+              onChange={e => setEditNotes(e.target.value)}
+              placeholder="Notes (optionnel)"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-colors"
+            />
+          </div>
+          {editError && <p className="text-red-400 text-xs">{editError}</p>}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => setIsEditing(false)}
+              className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium py-2 rounded-xl transition-colors"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              disabled={editLoading}
+              className="flex-1 bg-amber-400 hover:bg-amber-300 text-zinc-900 text-sm font-semibold py-2 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {editLoading ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              Enregistrer
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Delete confirm
+  if (confirmDelete) {
+    return (
+      <div className="rounded-2xl p-5 border bg-zinc-900 border-red-500/40">
+        <p className="text-sm text-white mb-1 font-semibold">Supprimer cette répétition ?</p>
+        <p className="text-xs text-zinc-400 mb-4">
+          {dateDisplay?.label} à {dateDisplay?.time} — cette action est irréversible.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setConfirmDelete(false)}
+            className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium py-2 rounded-xl transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleteLoading}
+            className="flex-1 bg-red-500 hover:bg-red-400 text-white text-sm font-semibold py-2 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {deleteLoading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            Supprimer
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`rounded-2xl p-5 border transition-all ${
@@ -197,6 +331,26 @@ export function SessionCard({
               <Pin size={12} />
               {isConfirmed ? 'Retirer' : 'Confirmer'}
             </button>
+          )}
+
+          {/* Edit / Delete */}
+          {canEditDelete && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={openEdit}
+                className="p-1.5 text-zinc-600 hover:text-amber-400 transition-colors rounded-lg"
+                title="Modifier"
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="p-1.5 text-zinc-600 hover:text-red-400 transition-colors rounded-lg"
+                title="Supprimer"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           )}
         </div>
       </div>
