@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { CalendarDays, ListMusic, Plus, Music2 } from 'lucide-react'
-import { format, differenceInDays, parseISO } from 'date-fns'
+import { differenceInDays, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { ClientDate } from '@/components/ClientDate'
 
 const CONCERT_DATES = [
   '2026-05-30',
@@ -98,7 +100,7 @@ export default async function Home() {
                   <li key={s.id}>
                     <Link href="/rehearsals" className="block hover:bg-zinc-800 rounded-xl p-3 transition-colors">
                       <div className="font-medium text-white">
-                        {format(new Date(s.proposed_date), 'EEE d MMM, HH:mm')}
+                        <ClientDate iso={s.proposed_date} fmt="EEE d MMM, HH:mm" />
                       </div>
                       {s.location && (
                         <div className="text-xs text-zinc-400 mt-0.5">{s.location}</div>
