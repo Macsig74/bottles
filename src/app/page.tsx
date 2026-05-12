@@ -165,13 +165,19 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Guide link */}
-      <div className="mt-8 text-center">
+      {/* Guide + patchnotes */}
+      <div className="mt-8 flex items-center justify-center gap-3">
         <Link
           href="/guide"
           className="inline-flex items-center gap-2 text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
         >
           Comment utiliser le site ?
+        </Link>
+        <Link
+          href="/patchnotes"
+          className="inline-flex items-center gap-2 text-zinc-500 hover:text-white border border-zinc-800 hover:border-zinc-600 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
+        >
+          Notes de mise à jour
         </Link>
       </div>
     </div>
