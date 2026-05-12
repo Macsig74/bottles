@@ -5,6 +5,7 @@ import { differenceInDays, parseISO } from 'date-fns'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ClientDate } from '@/components/ClientDate'
+import { FeedbackBanner } from '@/components/FeedbackBanner'
 
 const CONCERT_DATES = [
   '2026-05-30',
@@ -50,6 +51,8 @@ export default async function Home() {
         </h1>
         <p className="text-zinc-400 mt-1">Content de te revoir</p>
       </div>
+
+      <FeedbackBanner userName={profile?.name ?? 'Inconnu'} />
 
       {/* Concerts */}
       {upcomingConcerts.length > 0 && (
