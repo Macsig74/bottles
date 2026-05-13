@@ -9,9 +9,9 @@ import { FeedbackBanner } from '@/components/FeedbackBanner'
 
 const CONCERT_DATES = [
   '2026-05-30',
+  '2026-06-20',
   '2026-10-31',
   '2026-12-05',
-  '2027-06-20',
 ]
 
 export default async function Home() {
