@@ -16,6 +16,14 @@ interface Version {
 
 const VERSIONS: Version[] = [
   {
+    version: "1.6",
+    date: "12 mai 2026",
+    entries: [
+      { type: 'fix', text: 'date du concert du 20 juin' },
+    ],
+
+  }
+  {
     version: '1.5',
     date: '12 mai 2026',
     entries: [
