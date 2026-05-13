@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Music2, CalendarDays, ListMusic, LogOut, ThumbsUp, FolderOpen, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -30,8 +31,7 @@ export function Navbar() {
       <div className="max-w-5xl mx-auto px-4 h-full flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg text-white tracking-tight">
-            {/* Logo placeholder — replace with <Image> */}
-            <div className="w-7 h-7 rounded bg-zinc-700 shrink-0" />
+            <Image src="/bottles.png" alt="The Bottles" width={32} height={32} className="rounded-md shrink-0" />
             The Bottles
           </Link>
           <div className="hidden sm:flex items-center gap-1">
