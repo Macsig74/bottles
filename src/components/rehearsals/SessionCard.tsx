@@ -6,8 +6,9 @@ import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { User, CheckCircle2, XCircle, Clock, Pin, Pencil, Trash2, Loader2, X, Check } from 'lucide-react'
+import { InstrumentIcon } from '@/lib/instrumentIcon'
 
-type Vote = { user_id: string; can_attend: boolean; profiles: { name: string } | null }
+type Vote = { user_id: string; can_attend: boolean; profiles: { name: string; instrument?: string | null } | null }
 type Session = {
   id: string
   proposed_date: string
@@ -263,18 +264,17 @@ export function SessionCard({
             <div className="flex -space-x-1.5">
               {session.session_votes.map(vote => {
                 const name = vote.profiles?.name ?? '?'
-                const initial = name.charAt(0).toUpperCase()
                 return (
                   <div
                     key={vote.user_id}
                     title={`${name} : ${vote.can_attend ? 'présent' : 'absent'}`}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 border-zinc-900 select-none ${
+                    className={`w-7 h-7 rounded-full flex items-center justify-center border-2 border-zinc-900 select-none ${
                       vote.can_attend
                         ? 'bg-emerald-600 text-white'
                         : 'bg-red-600 text-white'
                     }`}
                   >
-                    {initial}
+                    <InstrumentIcon instrument={vote.profiles?.instrument} size={13} />
                   </div>
                 )
               })}

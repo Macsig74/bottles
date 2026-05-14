@@ -5,13 +5,14 @@ import { createClient } from '@/lib/supabase/client'
 import { MessageCircle, Send, Loader2, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { InstrumentIcon } from '@/lib/instrumentIcon'
 
 interface Comment {
   id: string
   user_id: string
   content: string
   created_at: string
-  profiles: { name: string } | null
+  profiles: { name: string; instrument?: string | null } | null
 }
 
 interface Props {
@@ -31,7 +32,7 @@ export function ProposalComments({ proposalId, userId, comments: initialComments
   const fetchComments = useCallback(async () => {
     const { data } = await supabase
       .from('proposal_comments')
-      .select('*, profiles(name)')
+      .select('*, profiles(name, instrument)')
       .eq('proposal_id', proposalId)
       .order('created_at', { ascending: true })
 
@@ -87,8 +88,8 @@ export function ProposalComments({ proposalId, userId, comments: initialComments
         )}
         {comments.map(c => (
           <div key={c.id} className="group flex gap-3">
-            <div className="shrink-0 w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-300">
-              {((c.profiles as any)?.name ?? '?')[0].toUpperCase()}
+            <div className="shrink-0 w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-zinc-300">
+              <InstrumentIcon instrument={(c.profiles as any)?.instrument} size={15} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-2">

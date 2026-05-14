@@ -12,7 +12,7 @@ export default async function RehearsalsPage() {
     supabase.from('profiles').select('is_admin').eq('id', user!.id).single(),
     supabase
       .from('rehearsal_sessions')
-      .select('*, profiles(name), session_votes(user_id, can_attend, profiles(name))')
+      .select('*, profiles(name), session_votes(user_id, can_attend, profiles(name, instrument))')
       .gte('proposed_date', new Date().toISOString())
       .order('proposed_date', { ascending: true }),
   ])
