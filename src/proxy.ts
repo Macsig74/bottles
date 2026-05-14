@@ -25,7 +25,13 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // Token invalide — on traite comme déconnecté
+  }
 
   const isLoginPage = request.nextUrl.pathname === '/login'
 
