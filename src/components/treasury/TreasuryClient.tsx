@@ -19,6 +19,7 @@ import {
   X,
   GripVertical,
 } from "lucide-react";
+import { FactureButton } from "./FacturePanel";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -92,6 +93,7 @@ const typeConfig = {
 
 function SortableRow({
   t,
+  userId,
   editingId,
   editAmount,
   editDescription,
@@ -106,6 +108,7 @@ function SortableRow({
   setEditDescription,
 }: {
   t: Transaction;
+  userId: string;
   editingId: string | null;
   editAmount: string;
   editDescription: string;
@@ -225,6 +228,7 @@ function SortableRow({
             {displayAmount.toFixed(2)} €
           </span>
           <div className="flex items-center gap-1 ml-1">
+            <FactureButton transactionId={t.id} userId={userId} />
             <button
               onClick={() => onStartEdit(t)}
               className="text-zinc-600 hover:text-amber-400 transition-colors p-1"
@@ -616,6 +620,7 @@ export function TreasuryClient({
                   <SortableRow
                     key={t.id}
                     t={t}
+                    userId={userId}
                     editingId={editingId}
                     editAmount={editAmount}
                     editDescription={editDescription}
