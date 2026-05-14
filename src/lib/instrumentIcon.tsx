@@ -1,4 +1,4 @@
-import { Guitar, Drum, Mic2, Music, Volume2, Piano, Settings } from 'lucide-react'
+import { Drum, Mic2, Music, Volume2, Piano, Settings } from 'lucide-react'
 import type { LucideProps } from 'lucide-react'
 
 type IconProps = { size?: number }
@@ -8,6 +8,21 @@ const HEADSTOCK = 'M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.3
 const NECK = 'm11.9 12.1 4.514-4.514'
 const STRAP = 'm6 16 2 2'
 const SVG_PROPS = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+
+// Corps acoustique avec rosace visible
+function AcousticGuitarIcon({ size = 14 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...SVG_PROPS}>
+      <path d={HEADSTOCK} />
+      <path d={NECK} />
+      <path d={STRAP} />
+      {/* body with waist */}
+      <path d="M8.23 9.85C8 8 10 7 12 8.5C14 10 14 13 13 15L12.23 15.38A2 2 0 0 0 11 17C9.5 20.5 7.5 23 5 22C2.5 21 1.5 18.5 2.5 16C3.5 13.5 6 12 7.5 11C8 10.5 8 10 8.23 9.85Z" />
+      {/* rosace */}
+      <circle cx="10.5" cy="13" r="1.5" />
+    </svg>
+  )
+}
 
 // Corps type Les Paul — solid, arrondi, pas de rosace
 function ElectricGuitarIcon({ size = 14 }: IconProps) {
@@ -46,8 +61,8 @@ const map: Record<string, IconComponent> = {
   chant: Mic2,
   vocals: Mic2,
   voix: Mic2,
-  guitare: Guitar,
-  guitar: Guitar,
+  guitare: AcousticGuitarIcon,
+  guitar: AcousticGuitarIcon,
   electrique: ElectricGuitarIcon,
   electric: ElectricGuitarIcon,
   basse: BassGuitarIcon,
