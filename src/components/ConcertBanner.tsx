@@ -22,7 +22,7 @@ export function ConcertBanner() {
       {days === 0 ? (
         <span className="ml-1 font-bold">— c&apos;est aujourd&apos;hui !</span>
       ) : (
-        <span className="ml-1 opacity-70">
+        <span className="ml-1 opacity-a">
           — dans {days} jour{days > 1 ? "s" : ""}
         </span>
       )}
