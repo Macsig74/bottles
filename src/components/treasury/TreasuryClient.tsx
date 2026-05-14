@@ -12,6 +12,8 @@ import {
   TrendingDown,
   ArrowLeftRight,
   Wallet,
+  Banknote,
+  Building2,
   Pencil,
   Check,
   X,
@@ -41,6 +43,7 @@ interface Transaction {
   amount: number;
   description: string;
   type: "income" | "expense" | "adjustment";
+  treasury: "cash" | "official";
   created_by: string;
   created_at: string;
   position: number | null;
@@ -54,12 +57,14 @@ interface Props {
   initialBalance: number;
 }
 
-function computeBalance(txs: Transaction[]) {
-  return txs.reduce((sum, t) => {
-    if (t.type === "income" || t.type === "adjustment")
-      return sum + Number(t.amount);
-    return sum - Number(t.amount);
-  }, 0);
+function computeBalance(txs: Transaction[], treasury: "cash" | "official") {
+  return txs
+    .filter((t) => t.treasury === treasury)
+    .reduce((sum, t) => {
+      if (t.type === "income" || t.type === "adjustment")
+        return sum + Number(t.amount);
+      return sum - Number(t.amount);
+    }, 0);
 }
 
 type Mode = "income" | "expense" | "adjustment" | null;
@@ -126,18 +131,15 @@ function SortableRow({
 
   const cfg = typeConfig[t.type];
   const Icon = cfg.icon;
-  const displayAmount =
-    t.type === "expense" ? -Number(t.amount) : Number(t.amount);
+  const displayAmount = t.type === "expense" ? -Number(t.amount) : Number(t.amount);
   const isEditing = editingId === t.id;
 
   return (
-    <li ref={setNodeRef} style={style} className="group px-3 py-3">
+    <li ref={setNodeRef} style={style} className="px-3 py-3">
       {isEditing ? (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <div
-              className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${cfg.bg}`}
-            >
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${cfg.bg}`}>
               <Icon size={14} className={cfg.color} />
             </div>
             <div className="relative shrink-0">
@@ -166,10 +168,7 @@ function SortableRow({
               >
                 {editLoading ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
               </button>
-              <button
-                onClick={onCancelEdit}
-                className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
-              >
+              <button onClick={onCancelEdit} className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors">
                 <X size={15} />
               </button>
             </div>
@@ -178,19 +177,14 @@ function SortableRow({
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          {/* Drag handle */}
           <button
             {...attributes}
             {...listeners}
             className="touch-none shrink-0 text-zinc-700 hover:text-zinc-400 active:text-amber-400 cursor-grab active:cursor-grabbing p-1 rounded-lg"
-            aria-label="Réordonner"
           >
             <GripVertical size={16} />
           </button>
-
-          <div
-            className={`w-8 h-8 rounded-lg flex items-center justify-center border ${cfg.bg} shrink-0`}
-          >
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${cfg.bg} shrink-0`}>
             <Icon size={14} className={cfg.color} />
           </div>
           <div className="flex-1 min-w-0">
@@ -200,9 +194,7 @@ function SortableRow({
               {format(new Date(t.created_at), "d MMM yyyy, HH:mm", { locale: fr })}
             </div>
           </div>
-          <span
-            className={`text-sm font-semibold tabular-nums ${displayAmount >= 0 ? "text-emerald-400" : "text-red-400"}`}
-          >
+          <span className={`text-sm font-semibold tabular-nums ${displayAmount >= 0 ? "text-emerald-400" : "text-red-400"}`}>
             {displayAmount >= 0 ? "+" : ""}
             {displayAmount.toFixed(2)} €
           </span>
@@ -218,11 +210,7 @@ function SortableRow({
               disabled={deletingId === t.id}
               className="text-zinc-600 hover:text-red-400 transition-colors disabled:opacity-50 p-1"
             >
-              {deletingId === t.id ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Trash2 size={14} />
-              )}
+              {deletingId === t.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             </button>
           </div>
         </div>
@@ -231,18 +219,13 @@ function SortableRow({
   );
 }
 
-export function TreasuryClient({
-  userId,
-  isAdmin,
-  initialTransactions,
-  initialBalance,
-}: Props) {
+export function TreasuryClient({ userId, isAdmin, initialTransactions }: Props) {
   const supabase = createClient();
 
   const [transactions, setTransactions] = useState<Transaction[]>(
     [...initialTransactions].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
   );
-  const [balance, setBalance] = useState(initialBalance);
+  const [activeTreasury, setActiveTreasury] = useState<"cash" | "official">("official");
 
   const [mode, setMode] = useState<Mode>(null);
   const [amount, setAmount] = useState("");
@@ -257,25 +240,22 @@ export function TreasuryClient({
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
 
+  const cashBalance = computeBalance(transactions, "cash");
+  const officialBalance = computeBalance(transactions, "official");
+  const currentTransactions = transactions.filter((t) => t.treasury === activeTreasury);
+
   const fetchTransactions = useCallback(async () => {
     const { data } = await supabase
       .from("treasury_transactions")
       .select("*, profiles(name)")
       .order("position", { ascending: true });
-    if (data) {
-      setTransactions(data as Transaction[]);
-      setBalance(computeBalance(data as Transaction[]));
-    }
+    if (data) setTransactions(data as Transaction[]);
   }, [supabase]);
 
   useEffect(() => {
     const channel = supabase
       .channel("treasury-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "treasury_transactions" },
-        () => { fetchTransactions(); }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "treasury_transactions" }, () => fetchTransactions())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetchTransactions, supabase]);
@@ -289,18 +269,20 @@ export function TreasuryClient({
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = transactions.findIndex((t) => t.id === active.id);
-    const newIndex = transactions.findIndex((t) => t.id === over.id);
-    const reordered = arrayMove(transactions, oldIndex, newIndex);
-    setTransactions(reordered);
-    setBalance(computeBalance(reordered));
+    const filtered = transactions.filter((t) => t.treasury === activeTreasury);
+    const others = transactions.filter((t) => t.treasury !== activeTreasury);
+    const oldIndex = filtered.findIndex((t) => t.id === active.id);
+    const newIndex = filtered.findIndex((t) => t.id === over.id);
+    const reordered = arrayMove(filtered, oldIndex, newIndex);
+
+    setTransactions([...others, ...reordered]);
 
     await Promise.all(
       reordered.map((t, i) =>
         supabase.from("treasury_transactions").update({ position: i + 1 }).eq("id", t.id)
       )
     );
-  }, [transactions, supabase]);
+  }, [transactions, activeTreasury, supabase]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -310,12 +292,13 @@ export function TreasuryClient({
     if (!description.trim()) { setError("La description est obligatoire."); return; }
     if (!mode) return;
 
+    const maxPos = currentTransactions.reduce((m, t) => Math.max(m, t.position ?? 0), 0);
     setLoading(true);
-    const maxPos = transactions.reduce((m, t) => Math.max(m, t.position ?? 0), 0);
     const { error: err } = await supabase.from("treasury_transactions").insert({
       amount: parsed,
       description: description.trim(),
       type: mode,
+      treasury: activeTreasury,
       created_by: userId,
       position: maxPos + 1,
     });
@@ -363,98 +346,98 @@ export function TreasuryClient({
 
   return (
     <div className="space-y-4">
-      {/* Balance card */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 text-center">
-        <p className="text-zinc-400 text-sm mb-1">Solde actuel</p>
-        <p className={`text-5xl font-bold tracking-tight ${balance >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-          {balance >= 0 ? "+" : ""}
-          {balance.toFixed(2)} €
-        </p>
-        <p className="text-zinc-600 text-xs mt-2">
-          {transactions.length} transaction{transactions.length !== 1 ? "s" : ""}
-        </p>
+      {/* Tabs */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => { setActiveTreasury("official"); setMode(null); }}
+          className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold transition-colors ${
+            activeTreasury === "official"
+              ? "bg-amber-500 border-amber-500 text-black"
+              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-amber-500/50 hover:text-amber-400"
+          }`}
+        >
+          <Building2 size={16} />
+          Compte Officiel
+        </button>
+        <button
+          onClick={() => { setActiveTreasury("cash"); setMode(null); }}
+          className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold transition-colors ${
+            activeTreasury === "cash"
+              ? "bg-amber-500 border-amber-500 text-black"
+              : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-amber-500/50 hover:text-amber-400"
+          }`}
+        >
+          <Banknote size={16} />
+          Caisse (Cash)
+        </button>
+      </div>
+
+      {/* Balance cards */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className={`bg-zinc-900 border rounded-2xl p-4 text-center transition-colors ${activeTreasury === "official" ? "border-amber-500/40" : "border-zinc-800"}`}>
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <Building2 size={13} className="text-zinc-500" />
+            <p className="text-zinc-400 text-xs">Officiel</p>
+          </div>
+          <p className={`text-2xl font-bold tracking-tight ${officialBalance >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {officialBalance >= 0 ? "+" : ""}{officialBalance.toFixed(2)} €
+          </p>
+        </div>
+        <div className={`bg-zinc-900 border rounded-2xl p-4 text-center transition-colors ${activeTreasury === "cash" ? "border-amber-500/40" : "border-zinc-800"}`}>
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <Banknote size={13} className="text-zinc-500" />
+            <p className="text-zinc-400 text-xs">Cash</p>
+          </div>
+          <p className={`text-2xl font-bold tracking-tight ${cashBalance >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {cashBalance >= 0 ? "+" : ""}{cashBalance.toFixed(2)} €
+          </p>
+        </div>
       </div>
 
       {/* Action buttons */}
       <div className="grid grid-cols-3 gap-2">
-        <button
-          onClick={() => setMode(mode === "income" ? null : "income")}
-          className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-sm font-medium transition-colors ${
-            mode === "income"
-              ? "bg-emerald-500 border-emerald-500 text-white"
-              : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-emerald-500/50 hover:text-emerald-400"
-          }`}
-        >
-          <Plus size={18} />
-          Entrée
-        </button>
-        <button
-          onClick={() => setMode(mode === "expense" ? null : "expense")}
-          className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-sm font-medium transition-colors ${
-            mode === "expense"
-              ? "bg-red-500 border-red-500 text-white"
-              : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-red-500/50 hover:text-red-400"
-          }`}
-        >
-          <Minus size={18} />
-          Dépense
-        </button>
-        <button
-          onClick={() => setMode(mode === "adjustment" ? null : "adjustment")}
-          className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-sm font-medium transition-colors ${
-            mode === "adjustment"
-              ? "bg-blue-500 border-blue-500 text-white"
-              : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-blue-500/50 hover:text-blue-400"
-          }`}
-        >
-          <SlidersHorizontal size={18} />
-          Solde actuel
-        </button>
+        {[
+          { key: "income", label: "Entrée", Icon: Plus, active: "bg-emerald-500 border-emerald-500 text-white", inactive: "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-emerald-500/50 hover:text-emerald-400" },
+          { key: "expense", label: "Dépense", Icon: Minus, active: "bg-red-500 border-red-500 text-white", inactive: "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-red-500/50 hover:text-red-400" },
+          { key: "adjustment", label: "Ajustement", Icon: SlidersHorizontal, active: "bg-blue-500 border-blue-500 text-white", inactive: "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-blue-500/50 hover:text-blue-400" },
+        ].map(({ key, label, Icon, active, inactive }) => (
+          <button
+            key={key}
+            onClick={() => setMode(mode === key as Mode ? null : key as Mode)}
+            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-sm font-medium transition-colors ${mode === key ? active : inactive}`}
+          >
+            <Icon size={18} />
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Form */}
       {mode && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3"
-        >
+        <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
           <p className="text-sm font-medium text-zinc-300">
-            {mode === "income" && "Ajouter une entrée d'argent"}
-            {mode === "expense" && "Enregistrer une dépense"}
-            {mode === "adjustment" && "Définir le solde actuel (ex: caisse de départ)"}
+            {mode === "income" && `Entrée — ${activeTreasury === "official" ? "Compte Officiel" : "Caisse"}`}
+            {mode === "expense" && `Dépense — ${activeTreasury === "official" ? "Compte Officiel" : "Caisse"}`}
+            {mode === "adjustment" && `Ajustement — ${activeTreasury === "official" ? "Compte Officiel" : "Caisse"}`}
           </p>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative sm:flex-1">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 pr-8 text-base text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
+                type="number" step="0.01" min="0" value={amount}
+                onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 pr-8 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
                 autoFocus
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">€</span>
             </div>
             <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={
-                mode === "income"
-                  ? "Source (ex: cotisations)"
-                  : mode === "expense"
-                    ? "Objet (ex: câbles)"
-                    : "Note (ex: solde initial)"
-              }
-              className="sm:flex-[2] bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-base text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
+              type="text" value={description} onChange={(e) => setDescription(e.target.value)}
+              placeholder={mode === "income" ? "Source (ex: cotisations)" : mode === "expense" ? "Objet (ex: câbles)" : "Note (ex: solde initial)"}
+              className="flex-[2] bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500 transition-colors"
             />
           </div>
           {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
+          <button type="submit" disabled={loading}
             className="flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black font-semibold py-2.5 rounded-xl transition-colors"
           >
             {loading && <Loader2 size={15} className="animate-spin" />}
@@ -464,43 +447,40 @@ export function TreasuryClient({
       )}
 
       {/* Transactions list */}
-      {transactions.length > 0 && (
+      {currentTransactions.length > 0 ? (
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-800">
-            <h2 className="text-sm font-semibold text-zinc-300">Historique</h2>
+          <div className="px-4 py-3 border-b border-zinc-800 flex items-center gap-2">
+            {activeTreasury === "official" ? <Building2 size={14} className="text-zinc-500" /> : <Banknote size={14} className="text-zinc-500" />}
+            <h2 className="text-sm font-semibold text-zinc-300">
+              Historique — {activeTreasury === "official" ? "Compte Officiel" : "Caisse"}
+            </h2>
+            <span className="ml-auto text-xs text-zinc-600">
+              {currentTransactions.length} transaction{currentTransactions.length !== 1 ? "s" : ""}
+            </span>
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={transactions.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={currentTransactions.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               <ul className="divide-y divide-zinc-800">
-                {transactions.map((t) => (
+                {currentTransactions.map((t) => (
                   <SortableRow
-                    key={t.id}
-                    t={t}
-                    editingId={editingId}
-                    editAmount={editAmount}
-                    editDescription={editDescription}
-                    editLoading={editLoading}
-                    editError={editError}
-                    deletingId={deletingId}
-                    onStartEdit={startEdit}
-                    onCancelEdit={cancelEdit}
-                    onSaveEdit={handleEdit}
-                    onDelete={handleDelete}
-                    setEditAmount={setEditAmount}
-                    setEditDescription={setEditDescription}
+                    key={t.id} t={t}
+                    editingId={editingId} editAmount={editAmount} editDescription={editDescription}
+                    editLoading={editLoading} editError={editError} deletingId={deletingId}
+                    onStartEdit={startEdit} onCancelEdit={cancelEdit} onSaveEdit={handleEdit}
+                    onDelete={handleDelete} setEditAmount={setEditAmount} setEditDescription={setEditDescription}
                   />
                 ))}
               </ul>
             </SortableContext>
           </DndContext>
         </div>
-      )}
-
-      {transactions.length === 0 && !mode && (
-        <div className="text-center py-12 text-zinc-600">
-          <Wallet size={40} className="mx-auto mb-3 opacity-30" />
-          <p>Aucune transaction. Commence par définir le solde actuel.</p>
-        </div>
+      ) : (
+        !mode && (
+          <div className="text-center py-12 text-zinc-600">
+            <Wallet size={40} className="mx-auto mb-3 opacity-30" />
+            <p>Aucune transaction pour {activeTreasury === "official" ? "le compte officiel" : "la caisse"}.</p>
+          </div>
+        )
       )}
     </div>
   );
