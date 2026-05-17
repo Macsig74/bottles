@@ -66,7 +66,7 @@ export default function NewConcertPage() {
             type="text"
             value={title}
             onChange={e => setTitle(e.target.value)}
-            placeholder="ex : Fête de la musique, Bar des amis…"
+            placeholder="ex : Fête de la musique, bar etc ..."
             className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
           />
         </div>
@@ -100,7 +100,7 @@ export default function NewConcertPage() {
             type="text"
             value={location}
             onChange={e => setLocation(e.target.value)}
-            placeholder="ex : Salle des fêtes, Bar Le Central…"
+            placeholder="ex : Veryer scene école etc..."
             className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
           />
         </div>
@@ -111,7 +111,7 @@ export default function NewConcertPage() {
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={3}
-            placeholder="Infos supplémentaires, contact organisateur…"
+            placeholder="infos supplémentaires contact etc…"
             className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors resize-none"
           />
         </div>
