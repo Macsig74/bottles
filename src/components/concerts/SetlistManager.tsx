@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, Trash2, Music, Search, X, GripVertical } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, Trash2, Music, Search, X, GripVertical, FileText } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -69,10 +70,23 @@ function SortableRow({
         {index + 1}
       </span>
 
-      <div className="flex-1 min-w-0">
-        <div className="text-white font-medium truncate">{entry.songs.title}</div>
+      <Link
+        href={`/playlist/${entry.song_id}`}
+        className="flex-1 min-w-0 group"
+      >
+        <div className="text-white font-medium truncate group-hover:text-amber-400 transition-colors">
+          {entry.songs.title}
+        </div>
         <div className="text-xs text-zinc-400 truncate">{entry.songs.artist}</div>
-      </div>
+      </Link>
+
+      <Link
+        href={`/playlist/${entry.song_id}`}
+        title="Voir les partitions"
+        className="shrink-0 text-zinc-600 hover:text-amber-400 transition-colors"
+      >
+        <FileText size={14} />
+      </Link>
 
       <button
         onClick={() => onRemove(entry.id)}

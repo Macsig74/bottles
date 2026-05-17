@@ -16,6 +16,36 @@ interface Version {
 
 const VERSIONS: Version[] = [
   {
+    version: "1.7",
+    date: "17 mai 2026",
+    entries: [
+      {
+        type: "new",
+        text: "Concerts : créer des concerts avec date, lieu et notes",
+      },
+      {
+        type: "new",
+        text: "Concerts : setlist par concert — ajouter des morceaux depuis la playlist",
+      },
+      {
+        type: "new",
+        text: "Concerts : drag-and-drop pour réordonner la setlist",
+      },
+      {
+        type: "new",
+        text: "Concerts : accès aux partitions directement depuis la setlist",
+      },
+      {
+        type: "improve",
+        text: "Bandeau concert dynamique — pointe vers la page du prochain concert",
+      },
+      {
+        type: "new",
+        text: "Icônes d'instrument dans les avatars (guitare acoustique, électrique, basse, batterie…)",
+      },
+    ],
+  },
+  {
     version: "1.6",
     date: "12 mai 2026",
     entries: [{ type: "fix", text: "date du concert du 20 juin" }],
