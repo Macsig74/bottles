@@ -1,9 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Music, Search, X } from 'lucide-react'
+import { Plus, Trash2, Music, Search, X, GripVertical } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 type Song = { id: string; title: string; artist: string }
 type SetlistEntry = { id: string; song_id: string; position: number; songs: Song }
@@ -14,14 +29,94 @@ interface Props {
   allSongs: Song[]
 }
 
+function SortableRow({
+  entry,
+  index,
+  onRemove,
+  removing,
+}: {
+  entry: SetlistEntry
+  index: number
+  onRemove: (id: string) => void
+  removing: string | null
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entry.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.85 : 1,
+  }
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 px-3 py-3 bg-zinc-900 ${isDragging ? 'shadow-2xl border border-amber-400/30 rounded-xl' : 'border-b border-zinc-800 last:border-b-0'}`}
+    >
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="touch-none shrink-0 text-zinc-600 hover:text-zinc-400 active:text-amber-400 cursor-grab active:cursor-grabbing p-1 rounded"
+        aria-label="Réordonner"
+      >
+        <GripVertical size={16} />
+      </button>
+
+      <span className="text-zinc-600 text-sm font-mono w-5 text-right shrink-0">
+        {index + 1}
+      </span>
+
+      <div className="flex-1 min-w-0">
+        <div className="text-white font-medium truncate">{entry.songs.title}</div>
+        <div className="text-xs text-zinc-400 truncate">{entry.songs.artist}</div>
+      </div>
+
+      <button
+        onClick={() => onRemove(entry.id)}
+        disabled={removing === entry.id}
+        className="shrink-0 text-zinc-600 hover:text-red-400 transition-colors disabled:opacity-40"
+        title="Retirer de la setlist"
+      >
+        <Trash2 size={14} />
+      </button>
+    </li>
+  )
+}
+
 export function SetlistManager({ concertId, initialSetlist, allSongs }: Props) {
   const supabase = createClient()
-  const router = useRouter()
 
-  const [setlist, setSetlist] = useState<SetlistEntry[]>(initialSetlist)
+  const [setlist, setSetlist] = useState<SetlistEntry[]>(
+    [...initialSetlist].sort((a, b) => a.position - b.position)
+  )
   const [showPicker, setShowPicker] = useState(false)
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<string | null>(null)
+  const [adding, setAdding] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  )
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = setlist.findIndex(e => e.id === active.id)
+    const newIndex = setlist.findIndex(e => e.id === over.id)
+    const reordered = arrayMove(setlist, oldIndex, newIndex)
+    setSetlist(reordered)
+
+    await Promise.all(
+      reordered.map((e, i) =>
+        supabase.from('concert_setlist').update({ position: i }).eq('id', e.id)
+      )
+    )
+  }, [setlist, supabase])
 
   const setlistIds = new Set(setlist.map(e => e.song_id))
   const available = allSongs.filter(s =>
@@ -31,7 +126,7 @@ export function SetlistManager({ concertId, initialSetlist, allSongs }: Props) {
   )
 
   async function addSong(song: Song) {
-    setLoading(song.id)
+    setAdding(song.id)
     const position = setlist.length
     const { data, error } = await supabase
       .from('concert_setlist')
@@ -42,11 +137,11 @@ export function SetlistManager({ concertId, initialSetlist, allSongs }: Props) {
     if (!error && data) {
       setSetlist(prev => [...prev, { ...data, songs: song }])
     }
-    setLoading(null)
+    setAdding(null)
   }
 
   async function removeSong(entryId: string) {
-    setLoading(entryId)
+    setRemoving(entryId)
     const { error } = await supabase
       .from('concert_setlist')
       .delete()
@@ -55,7 +150,7 @@ export function SetlistManager({ concertId, initialSetlist, allSongs }: Props) {
     if (!error) {
       setSetlist(prev => prev.filter(e => e.id !== entryId))
     }
-    setLoading(null)
+    setRemoving(null)
   }
 
   return (
@@ -74,7 +169,6 @@ export function SetlistManager({ concertId, initialSetlist, allSongs }: Props) {
         </button>
       </div>
 
-      {/* Setlist */}
       {setlist.length === 0 ? (
         <div className="p-8 text-center text-zinc-500 text-sm">
           Aucun morceau dans la setlist.{' '}
@@ -86,30 +180,21 @@ export function SetlistManager({ concertId, initialSetlist, allSongs }: Props) {
           </button>
         </div>
       ) : (
-        <ol className="divide-y divide-zinc-800">
-          {setlist
-            .slice()
-            .sort((a, b) => a.position - b.position)
-            .map((entry, idx) => (
-              <li key={entry.id} className="flex items-center gap-4 px-5 py-3">
-                <span className="text-zinc-600 text-sm font-mono w-5 text-right shrink-0">
-                  {idx + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-white font-medium truncate">{entry.songs.title}</div>
-                  <div className="text-xs text-zinc-400 truncate">{entry.songs.artist}</div>
-                </div>
-                <button
-                  onClick={() => removeSong(entry.id)}
-                  disabled={loading === entry.id}
-                  className="shrink-0 text-zinc-600 hover:text-red-400 transition-colors disabled:opacity-40"
-                  title="Retirer de la setlist"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </li>
-            ))}
-        </ol>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={setlist.map(e => e.id)} strategy={verticalListSortingStrategy}>
+            <ol className="overflow-hidden rounded-b-2xl">
+              {setlist.map((entry, idx) => (
+                <SortableRow
+                  key={entry.id}
+                  entry={entry}
+                  index={idx}
+                  onRemove={removeSong}
+                  removing={removing}
+                />
+              ))}
+            </ol>
+          </SortableContext>
+        </DndContext>
       )}
 
       {/* Song picker modal */}
@@ -151,7 +236,7 @@ export function SetlistManager({ concertId, initialSetlist, allSongs }: Props) {
                     <li key={song.id}>
                       <button
                         onClick={() => addSong(song)}
-                        disabled={loading === song.id}
+                        disabled={adding === song.id}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-800 transition-colors text-left disabled:opacity-50"
                       >
                         <div className="flex-1 min-w-0">
