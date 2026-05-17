@@ -1,18 +1,11 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { CalendarDays, ListMusic, Plus, Music2 } from 'lucide-react'
+import { CalendarDays, ListMusic, Plus, Music2, MapPin } from 'lucide-react'
 import { differenceInDays, parseISO } from 'date-fns'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ClientDate } from '@/components/ClientDate'
 import { FeedbackBanner } from '@/components/FeedbackBanner'
-
-const CONCERT_DATES = [
-  '2026-05-30',
-  '2026-06-20',
-  '2026-10-31',
-  '2026-12-05',
-]
 
 export default async function Home() {
   const supabase = await createClient()
@@ -37,11 +30,14 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(5)
 
+  const { data: upcomingConcerts } = await supabase
+    .from('concerts')
+    .select('*')
+    .gte('date', new Date().toISOString())
+    .order('date', { ascending: true })
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const upcomingConcerts = CONCERT_DATES
-    .map(d => parseISO(d))
-    .filter(d => d >= today)
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 pb-24 sm:pb-8">
@@ -55,29 +51,69 @@ export default async function Home() {
       <FeedbackBanner userName={profile?.name ?? 'Inconnu'} />
 
       {/* Concerts */}
-      {upcomingConcerts.length > 0 && (
-        <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-6">
-          <div className="flex items-center gap-2 text-amber-400 font-semibold mb-4">
+      <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-amber-400 font-semibold">
             <Music2 size={18} />
             Prochains concerts
           </div>
+          <Link
+            href="/concerts/new"
+            className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
+          >
+            <Plus size={14} /> Ajouter
+          </Link>
+        </div>
+        {upcomingConcerts && upcomingConcerts.length > 0 ? (
           <ul className="space-y-2">
-            {upcomingConcerts.map((d, i) => {
+            {upcomingConcerts.map((concert: any) => {
+              const d = parseISO(concert.date)
               const days = differenceInDays(d, today)
               return (
-                <li key={i} className="flex items-center justify-between">
-                  <span className="text-white font-medium capitalize">
-                    {format(d, 'EEEE d MMMM yyyy', { locale: fr })}
-                  </span>
-                  <span className="text-xs text-zinc-500 shrink-0 ml-3">
-                    {days === 0 ? "aujourd'hui !" : `dans ${days} jour${days > 1 ? 's' : ''}`}
-                  </span>
+                <li key={concert.id}>
+                  <Link
+                    href={`/concerts/${concert.id}`}
+                    className="flex items-center justify-between hover:bg-zinc-800 rounded-xl p-3 transition-colors -mx-1"
+                  >
+                    <div>
+                      <div className="text-white font-medium capitalize">
+                        {concert.title
+                          ? concert.title
+                          : format(d, 'EEEE d MMMM yyyy', { locale: fr })}
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        {!concert.title && (
+                          <span className="text-xs text-zinc-500">
+                            {format(d, 'd MMM yyyy', { locale: fr })}
+                          </span>
+                        )}
+                        {concert.title && (
+                          <span className="text-xs text-zinc-500 capitalize">
+                            {format(d, 'EEEE d MMMM yyyy', { locale: fr })}
+                          </span>
+                        )}
+                        {concert.location && (
+                          <span className="flex items-center gap-1 text-xs text-zinc-500">
+                            <MapPin size={10} />
+                            {concert.location}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs text-amber-400 shrink-0 ml-3 font-medium">
+                      {days === 0 ? "aujourd'hui !" : `dans ${days}j`}
+                    </span>
+                  </Link>
                 </li>
               )
             })}
           </ul>
-        </div>
-      )}
+        ) : (
+          <p className="text-zinc-500 text-sm">Aucun concert prévu.{' '}
+            <Link href="/concerts/new" className="text-amber-400 hover:underline">Ajouter le premier →</Link>
+          </p>
+        )}
+      </div>
 
       <div className="grid sm:grid-cols-2 gap-6">
         {/* Upcoming rehearsals */}

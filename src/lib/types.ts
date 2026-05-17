@@ -228,6 +228,53 @@ export type Database = {
           type?: 'income' | 'expense' | 'adjustment'
         }
       }
+      concerts: {
+        Row: {
+          id: string
+          title: string | null
+          date: string
+          location: string | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title?: string | null
+          date: string
+          location?: string | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          title?: string | null
+          date?: string
+          location?: string | null
+          notes?: string | null
+        }
+      }
+      concert_setlist: {
+        Row: {
+          id: string
+          concert_id: string
+          song_id: string
+          position: number
+          added_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          concert_id: string
+          song_id: string
+          position?: number
+          added_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          position?: number
+        }
+      }
       library_files: {
         Row: {
           id: string
@@ -269,3 +316,5 @@ export type ProposalComment = Database['public']['Tables']['proposal_comments'][
 export type LibraryFolder = Database['public']['Tables']['library_folders']['Row']
 export type LibraryFile = Database['public']['Tables']['library_files']['Row']
 export type TreasuryTransaction = Database['public']['Tables']['treasury_transactions']['Row']
+export type Concert = Database['public']['Tables']['concerts']['Row']
+export type ConcertSetlistEntry = Database['public']['Tables']['concert_setlist']['Row']
