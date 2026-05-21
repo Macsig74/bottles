@@ -6,6 +6,7 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { createClient } from "@/lib/supabase/server";
 import { Analytics } from "@vercel/analytics/next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "The Bottles",
@@ -29,8 +30,9 @@ export default async function RootLayout({
   const supabase = await createClient();
   let user = null;
   try {
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
+    // getSession lit le cookie localement (pas d'appel réseau)
+    const { data } = await supabase.auth.getSession();
+    user = data.session?.user ?? null;
   } catch {
     // Token invalide ou expiré — on traite comme déconnecté
   }
@@ -41,7 +43,11 @@ export default async function RootLayout({
         <ServiceWorkerRegistration />
         <InstallPrompt />
         {user && <Navbar />}
-        {user && <ConcertBanner />}
+        {user && (
+          <Suspense fallback={null}>
+            <ConcertBanner />
+          </Suspense>
+        )}
         <main className={user ? "pt-16" : ""}>{children}</main>
         <Analytics />
       </body>

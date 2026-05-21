@@ -14,30 +14,33 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user!.id)
-    .single();
 
-  const { data: upcomingSessions } = await supabase
-    .from("rehearsal_sessions")
-    .select("*, profiles(name), session_votes(can_attend)")
-    .gte("proposed_date", new Date().toISOString())
-    .order("proposed_date", { ascending: true })
-    .limit(3);
+  const now = new Date().toISOString();
 
-  const { data: recentSongs } = await supabase
-    .from("songs")
-    .select("*, profiles(name)")
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  const { data: upcomingConcerts } = await supabase
-    .from("concerts")
-    .select("*")
-    .gte("date", new Date().toISOString())
-    .order("date", { ascending: true });
+  const [
+    { data: profile },
+    { data: upcomingSessions },
+    { data: recentSongs },
+    { data: upcomingConcerts },
+  ] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user!.id).single(),
+    supabase
+      .from("rehearsal_sessions")
+      .select("*, profiles(name), session_votes(can_attend)")
+      .gte("proposed_date", now)
+      .order("proposed_date", { ascending: true })
+      .limit(3),
+    supabase
+      .from("songs")
+      .select("id, title, artist")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("concerts")
+      .select("id, title, date, location, notes")
+      .gte("date", now)
+      .order("date", { ascending: true }),
+  ]);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
