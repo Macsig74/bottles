@@ -6,6 +6,7 @@ import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { SetlistManager } from '@/components/concerts/SetlistManager'
 import { DeleteConcertButton } from '@/components/concerts/DeleteConcertButton'
+import { EditConcertButton } from '@/components/concerts/EditConcertButton'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -45,7 +46,18 @@ export default async function ConcertPage({ params }: Props) {
           <ArrowLeft size={16} />
           Retour
         </Link>
-        {isOwner && <DeleteConcertButton concertId={id} />}
+        {isOwner && (
+          <div className="flex items-center gap-3">
+            <EditConcertButton
+              concertId={id}
+              initialTitle={concert.title}
+              initialDate={concert.date}
+              initialLocation={concert.location}
+              initialNotes={concert.notes}
+            />
+            <DeleteConcertButton concertId={id} />
+          </div>
+        )}
       </div>
 
       {/* Concert header */}
