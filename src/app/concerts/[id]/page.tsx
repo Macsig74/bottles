@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CalendarDays, MapPin, FileText, Trash2 } from 'lucide-react'
+import { ArrowLeft, CalendarDays, MapPin, FileText } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { SetlistManager } from '@/components/concerts/SetlistManager'
@@ -16,8 +16,6 @@ export default async function ConcertPage({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-
   const [{ data: concert }, { data: setlistRaw }, { data: allSongs }] = await Promise.all([
     supabase.from('concerts').select('*, profiles(name)').eq('id', id).single(),
     supabase
@@ -31,7 +29,6 @@ export default async function ConcertPage({ params }: Props) {
   if (!concert) notFound()
 
   const d = parseISO(concert.date)
-  const isOwner = user?.id === concert.created_by
 
   // Reshape setlist entries so songs is always an object (not array)
   const setlist = (setlistRaw ?? []).map((e: any) => ({
@@ -46,18 +43,16 @@ export default async function ConcertPage({ params }: Props) {
           <ArrowLeft size={16} />
           Retour
         </Link>
-        {isOwner && (
-          <div className="flex items-center gap-3">
-            <EditConcertButton
-              concertId={id}
-              initialTitle={concert.title}
-              initialDate={concert.date}
-              initialLocation={concert.location}
-              initialNotes={concert.notes}
-            />
-            <DeleteConcertButton concertId={id} />
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          <EditConcertButton
+            concertId={id}
+            initialTitle={concert.title}
+            initialDate={concert.date}
+            initialLocation={concert.location}
+            initialNotes={concert.notes}
+          />
+          <DeleteConcertButton concertId={id} />
+        </div>
       </div>
 
       {/* Concert header */}

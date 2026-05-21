@@ -65,9 +65,9 @@ export function EditConcertButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-zinc-500 hover:text-amber-400 transition-colors text-sm"
+        className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
       >
-        <Pencil size={14} />
+        <Pencil size={12} />
         Modifier
       </button>
 
