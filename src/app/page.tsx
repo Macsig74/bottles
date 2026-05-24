@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ClientDate } from "@/components/ClientDate";
 import { FeedbackBanner } from "@/components/FeedbackBanner";
+import { PushNotificationManager } from "@/components/PushNotificationManager";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -55,6 +56,10 @@ export default async function Home() {
       </div>
 
       <FeedbackBanner userName={profile?.name ?? "Inconnu"} />
+
+      <div className="mb-6">
+        <PushNotificationManager />
+      </div>
 
       {/* Concerts */}
       <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-6">
