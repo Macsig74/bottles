@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CalendarDays, ListMusic, Plus, Music2, MapPin } from "lucide-react";
 import { EditConcertButton } from "@/components/concerts/EditConcertButton";
@@ -15,6 +16,8 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
 
   const now = new Date().toISOString();
 

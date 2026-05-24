@@ -31,7 +31,7 @@ export function Navbar() {
       <div className="max-w-5xl mx-auto px-4 h-full flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg text-white tracking-tight">
-            <Image src="/bottles.png" alt="The Bottles" width={32} height={32} className="rounded-md shrink-0" />
+            <Image src="/bottles.png" alt="The Bottles" width={32} height={32} loading="eager" priority className="rounded-md shrink-0" />
             The Bottles
           </Link>
           <div className="hidden sm:flex items-center gap-1">
