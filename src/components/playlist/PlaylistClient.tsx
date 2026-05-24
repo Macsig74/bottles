@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Music, GripVertical, Pencil, Trash2, X, Check, Loader2 } from 'lucide-react'
+import { Music, GripVertical, Pencil, Trash2, X, Check, Loader2, Search } from 'lucide-react'
 
 interface Song {
   id: string
@@ -268,6 +268,14 @@ export function PlaylistClient({ initialSongs }: { initialSongs: Song[] }) {
   const [songs, setSongs] = useState<Song[]>(initialSongs)
   const [editingSong, setEditingSong] = useState<Song | null>(null)
   const [deletingSong, setDeletingSong] = useState<Song | null>(null)
+  const [query, setQuery] = useState('')
+
+  const filtered = query.trim()
+    ? songs.filter(s =>
+        s.title.toLowerCase().includes(query.toLowerCase()) ||
+        s.artist.toLowerCase().includes(query.toLowerCase())
+      )
+    : songs
 
   // Sensors: pointer (desktop) + touch (mobile) with a small delay to avoid conflicting with scrolling
   const sensors = useSensors(
@@ -313,20 +321,58 @@ export function PlaylistClient({ initialSongs }: { initialSongs: Song[] }) {
 
   return (
     <>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={songs.map(s => s.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
-            {songs.map(song => (
-              <SortableRow
-                key={song.id}
-                song={song}
-                onEdit={setEditingSong}
-                onDelete={setDeletingSong}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      {/* Barre de recherche */}
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Rechercher un titre ou artiste…"
+          className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
+        />
+        {query && (
+          <button
+            onClick={() => setQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="text-center text-zinc-500 py-10 text-sm">Aucun résultat pour « {query} »</p>
+      )}
+
+      {/* Liste : drag-and-drop seulement sans filtre actif */}
+      {query.trim() === '' ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={songs.map(s => s.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {songs.map(song => (
+                <SortableRow
+                  key={song.id}
+                  song={song}
+                  onEdit={setEditingSong}
+                  onDelete={setDeletingSong}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(song => (
+            <SortableRow
+              key={song.id}
+              song={song}
+              onEdit={setEditingSong}
+              onDelete={setDeletingSong}
+            />
+          ))}
+        </div>
+      )}
 
       {editingSong && (
         <EditModal

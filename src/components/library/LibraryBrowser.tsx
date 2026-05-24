@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   FolderPlus, Upload, Folder, Loader2, Trash2,
-  FileVideo, FileText, FileImage, File, X, ChevronRight, Home
+  FileVideo, FileText, FileImage, File, X, ChevronRight, Home, Search
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -74,6 +74,14 @@ export function LibraryBrowser({ userId, isAdmin, initialFolders, initialFiles, 
 
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [previewFile, setPreviewFile] = useState<FileRow | null>(null)
+  const [query, setQuery] = useState('')
+
+  const filteredFolders = query.trim()
+    ? folders.filter(f => f.name.toLowerCase().includes(query.toLowerCase()))
+    : folders
+  const filteredFiles = query.trim()
+    ? files.filter(f => f.name.toLowerCase().includes(query.toLowerCase()))
+    : files
 
   async function createFolder() {
     if (!newFolderName.trim()) return
@@ -211,6 +219,26 @@ export function LibraryBrowser({ userId, isAdmin, initialFolders, initialFiles, 
         />
       </div>
 
+      {/* Barre de recherche */}
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Rechercher un fichier ou dossier…"
+          className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
+        />
+        {query && (
+          <button
+            onClick={() => setQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
       {/* New folder input */}
       {showFolderInput && (
         <div className="flex gap-2 mb-4">
@@ -240,19 +268,19 @@ export function LibraryBrowser({ userId, isAdmin, initialFolders, initialFiles, 
       )}
 
       {/* Empty state */}
-      {folders.length === 0 && files.length === 0 && (
+      {filteredFolders.length === 0 && filteredFiles.length === 0 && (
         <div className="text-center py-16 text-zinc-600">
           <FolderPlus size={40} className="mx-auto mb-3 opacity-30" />
-          <p>Ce dossier est vide.</p>
+          <p>{query.trim() ? `Aucun résultat pour « ${query} »` : 'Ce dossier est vide.'}</p>
         </div>
       )}
 
       {/* Folders */}
-      {folders.length > 0 && (
+      {filteredFolders.length > 0 && (
         <div className="mb-4">
           <h2 className="text-xs text-zinc-500 uppercase tracking-wider font-semibold mb-2">Dossiers</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {folders.map(f => (
+            {filteredFolders.map(f => (
               <div key={f.id} className="group relative">
                 <Link
                   href={`/library/folder/${f.id}`}
@@ -278,11 +306,11 @@ export function LibraryBrowser({ userId, isAdmin, initialFolders, initialFiles, 
       )}
 
       {/* Files */}
-      {files.length > 0 && (
+      {filteredFiles.length > 0 && (
         <div>
           <h2 className="text-xs text-zinc-500 uppercase tracking-wider font-semibold mb-2">Fichiers</h2>
           <div className="space-y-1.5">
-            {files.map(f => (
+            {filteredFiles.map(f => (
               <div
                 key={f.id}
                 className="group flex items-center gap-3 bg-zinc-900 border border-zinc-800 hover:border-zinc-600 rounded-xl px-4 py-3 transition-colors"
