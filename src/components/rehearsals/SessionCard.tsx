@@ -7,8 +7,10 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { User, CheckCircle2, XCircle, Clock, Pin, Pencil, Trash2, Loader2, X, Check } from 'lucide-react'
 import { InstrumentIcon } from '@/lib/instrumentIcon'
+import { RehearsalSongPicker } from '@/components/rehearsals/RehearsalSongPicker'
 
 type Vote = { user_id: string; can_attend: boolean; profiles: { name: string; instrument?: string | null } | null }
+type RehearsalSong = { id: string; song_id: string; songs: { id: string; title: string; artist: string } }
 type Session = {
   id: string
   proposed_date: string
@@ -17,6 +19,7 @@ type Session = {
   proposed_by: string | null
   profiles: { name: string } | null
   session_votes: Vote[]
+  rehearsal_songs?: RehearsalSong[]
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -29,10 +32,12 @@ export function SessionCard({
   session,
   userId,
   isAdmin,
+  allSongs = [],
 }: {
   session: Session
   userId: string
   isAdmin: boolean
+  allSongs?: { id: string; title: string; artist: string }[]
 }) {
   const supabase = createClient()
   const router = useRouter()
@@ -354,6 +359,15 @@ export function SessionCard({
           )}
         </div>
       </div>
+
+      {/* Morceaux à travailler */}
+      {!isPast && allSongs.length > 0 && (
+        <RehearsalSongPicker
+          sessionId={session.id}
+          initialSongs={session.rehearsal_songs ?? []}
+          allSongs={allSongs}
+        />
+      )}
     </div>
   )
 }

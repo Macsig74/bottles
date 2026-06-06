@@ -8,9 +8,11 @@ import { Loader2 } from 'lucide-react'
 interface Props {
   proposalId: string
   currentStatus: string
+  proposalTitle: string
+  proposalArtist: string
 }
 
-export function ProposalStatusControl({ proposalId, currentStatus }: Props) {
+export function ProposalStatusControl({ proposalId, currentStatus, proposalTitle, proposalArtist }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -19,6 +21,26 @@ export function ProposalStatusControl({ proposalId, currentStatus }: Props) {
     if (status === currentStatus) return
     setLoading(true)
     await supabase.from('music_proposals').update({ status }).eq('id', proposalId)
+
+    // Si accepté → ajouter automatiquement à la playlist (si pas déjà présent)
+    if (status === 'accepted') {
+      const { data: existing } = await supabase
+        .from('songs')
+        .select('id')
+        .ilike('title', proposalTitle)
+        .ilike('artist', proposalArtist)
+        .maybeSingle()
+
+      if (!existing) {
+        const { data: { user } } = await supabase.auth.getUser()
+        await supabase.from('songs').insert({
+          title: proposalTitle,
+          artist: proposalArtist,
+          added_by: user?.id ?? null,
+        })
+      }
+    }
+
     setLoading(false)
     router.refresh()
   }

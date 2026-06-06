@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Plus } from 'lucide-react'
 import { SessionCard } from '@/components/rehearsals/SessionCard'
@@ -7,17 +8,28 @@ export default async function RehearsalsPage() {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  const [{ data: profile }, { data: sessions }] = await Promise.all([
-    supabase.from('profiles').select('is_admin').eq('id', user!.id).single(),
+  const [{ data: profile }, { data: sessions }, { data: allSongs }] = await Promise.all([
+    supabase.from('profiles').select('is_admin').eq('id', user.id).single(),
     supabase
       .from('rehearsal_sessions')
-      .select('*, profiles(name), session_votes(user_id, can_attend, profiles(name, instrument))')
+      .select('*, profiles(name), session_votes(user_id, can_attend, profiles(name, instrument)), rehearsal_songs(id, song_id, songs(id, title, artist))')
       .gte('proposed_date', new Date().toISOString())
       .order('proposed_date', { ascending: true }),
+    supabase.from('songs').select('id, title, artist').order('title', { ascending: true }),
   ])
 
   const isAdmin = (profile as any)?.is_admin === true
+
+  // Reshape rehearsal_songs.songs (can come as array from join)
+  const reshapedSessions = (sessions ?? []).map((s: any) => ({
+    ...s,
+    rehearsal_songs: (s.rehearsal_songs ?? []).map((rs: any) => ({
+      ...rs,
+      songs: Array.isArray(rs.songs) ? rs.songs[0] : rs.songs,
+    })),
+  }))
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-24 sm:pb-8">
@@ -33,10 +45,16 @@ export default async function RehearsalsPage() {
         </Link>
       </div>
 
-      {sessions && sessions.length > 0 ? (
+      {reshapedSessions.length > 0 ? (
         <div className="space-y-4">
-          {sessions.map((session: any) => (
-            <SessionCard key={session.id} session={session} userId={user!.id} isAdmin={isAdmin} />
+          {reshapedSessions.map((session: any) => (
+            <SessionCard
+              key={session.id}
+              session={session}
+              userId={user.id}
+              isAdmin={isAdmin}
+              allSongs={allSongs ?? []}
+            />
           ))}
         </div>
       ) : (

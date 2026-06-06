@@ -107,6 +107,8 @@ export default async function ProposalDetailPage({ params }: { params: Promise<{
             <ProposalStatusControl
               proposalId={id}
               currentStatus={proposal.status}
+              proposalTitle={proposal.title}
+              proposalArtist={proposal.artist}
             />
           </div>
         )}

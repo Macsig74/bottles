@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
-import { ConcertBanner } from "@/components/ConcertBanner";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { createClient } from "@/lib/supabase/server";
 import { Analytics } from "@vercel/analytics/next";
-import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "The Bottles",
@@ -43,11 +41,6 @@ export default async function RootLayout({
         <ServiceWorkerRegistration />
         <InstallPrompt />
         {user && <Navbar />}
-        {user && (
-          <Suspense fallback={null}>
-            <ConcertBanner />
-          </Suspense>
-        )}
         <main className={user ? "pt-16" : ""}>{children}</main>
         <Analytics />
       </body>
