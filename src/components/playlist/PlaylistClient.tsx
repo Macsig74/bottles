@@ -29,7 +29,12 @@ import {
   Check,
   Loader2,
   Search,
+  ArrowUpAZ,
+  Users,
+  GripHorizontal,
 } from "lucide-react";
+
+type SortMode = "position" | "title" | "artist";
 
 interface Song {
   id: string;
@@ -236,52 +241,24 @@ function DeleteConfirm({
   );
 }
 
-function SortableRow({
+// Shared inner content for both row types
+function SongCardInner({
   song,
   onEdit,
   onDelete,
+  dragHandle,
 }: {
   song: Song;
   onEdit: (song: Song) => void;
   onDelete: (song: Song) => void;
+  dragHandle?: React.ReactNode;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: song.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 50 : undefined,
-    opacity: isDragging ? 0.85 : 1,
-  };
-
   const instruments = [
     ...new Set<string>(song.sheet_music?.map((s) => s.instrument) ?? []),
   ];
-
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-3 sm:px-4 sm:py-4 transition-colors ${isDragging ? "shadow-2xl border-amber-400/30" : ""}`}
-    >
-      {/* Drag handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="touch-none shrink-0 text-zinc-600 hover:text-zinc-400 active:text-amber-400 cursor-grab active:cursor-grabbing p-1.5 -ml-1 rounded-lg"
-        aria-label="Réordonner"
-      >
-        <GripVertical size={20} />
-      </button>
-
-      {/* Song info — clickable link */}
+    <>
+      {dragHandle}
       <Link
         href={`/playlist/${song.id}`}
         className="flex-1 flex items-center gap-3 min-w-0"
@@ -315,8 +292,6 @@ function SortableRow({
           </div>
         )}
       </Link>
-
-      {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
         <button
           onClick={() => onEdit(song)}
@@ -333,6 +308,72 @@ function SortableRow({
           <Trash2 size={16} />
         </button>
       </div>
+    </>
+  );
+}
+
+// Draggable row — doit être à l'intérieur d'un DndContext
+function SortableRow({
+  song,
+  onEdit,
+  onDelete,
+}: {
+  song: Song;
+  onEdit: (song: Song) => void;
+  onDelete: (song: Song) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: song.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.85 : 1,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-3 sm:px-4 sm:py-4 transition-colors ${isDragging ? "shadow-2xl border-amber-400/30" : ""}`}
+    >
+      <SongCardInner
+        song={song}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        dragHandle={
+          <button
+            {...attributes}
+            {...listeners}
+            className="touch-none shrink-0 text-zinc-600 hover:text-zinc-400 active:text-amber-400 cursor-grab active:cursor-grabbing p-1.5 -ml-1 rounded-lg"
+            aria-label="Réordonner"
+          >
+            <GripVertical size={20} />
+          </button>
+        }
+      />
+    </div>
+  );
+}
+
+// Ligne statique — hors DndContext (recherche ou tri actif)
+function SongRow({
+  song,
+  onEdit,
+  onDelete,
+}: {
+  song: Song;
+  onEdit: (song: Song) => void;
+  onDelete: (song: Song) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl px-3 py-3 sm:px-4 sm:py-4">
+      <SongCardInner song={song} onEdit={onEdit} onDelete={onDelete} />
     </div>
   );
 }
@@ -343,14 +384,26 @@ export function PlaylistClient({ initialSongs }: { initialSongs: Song[] }) {
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [deletingSong, setDeletingSong] = useState<Song | null>(null);
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortMode>("position");
 
-  const filtered = query.trim()
+  // Filtre par recherche
+  const afterSearch = query.trim()
     ? songs.filter(
         (s) =>
           s.title.toLowerCase().includes(query.toLowerCase()) ||
           s.artist.toLowerCase().includes(query.toLowerCase()),
       )
     : songs;
+
+  // Tri
+  const displayed = [...afterSearch].sort((a, b) => {
+    if (sort === "title") return a.title.localeCompare(b.title, "fr");
+    if (sort === "artist") return a.artist.localeCompare(b.artist, "fr");
+    return 0; // position = ordre naturel du tableau
+  });
+
+  // Drag actif seulement si pas de recherche ET tri position
+  const dragActive = query.trim() === "" && sort === "position";
 
   // Sensors: pointer (desktop) + touch (mobile) with a small delay to avoid conflicting with scrolling
   const sensors = useSensors(
@@ -411,37 +464,63 @@ export function PlaylistClient({ initialSongs }: { initialSongs: Song[] }) {
 
   return (
     <>
-      {/* Barre de recherche */}
-      <div className="relative mb-4">
-        <Search
-          size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
-        />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher un titre ou artiste…"
-          className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
-        />
-        {query && (
-          <button
-            onClick={() => setQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-          >
-            <X size={14} />
-          </button>
-        )}
+      {/* Barre de recherche + tri */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+          />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher un titre ou artiste…"
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-400 transition-colors"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Boutons de tri */}
+        <div className="flex gap-1 shrink-0">
+          {(
+            [
+              { value: "position", label: "Ordre", icon: <GripHorizontal size={13} /> },
+              { value: "title",    label: "Titre",  icon: <ArrowUpAZ size={13} /> },
+              { value: "artist",   label: "Artiste", icon: <Users size={13} /> },
+            ] as { value: SortMode; label: string; icon: React.ReactNode }[]
+          ).map(({ value, label, icon }) => (
+            <button
+              key={value}
+              onClick={() => setSort(value)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                sort === value
+                  ? "bg-amber-400 text-zinc-900"
+                  : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+              }`}
+            >
+              {icon}
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {filtered.length === 0 && (
+      {displayed.length === 0 && (
         <p className="text-center text-zinc-500 py-10 text-sm">
           Aucun résultat pour « {query} »
         </p>
       )}
 
-      {/* Liste : drag-and-drop seulement sans filtre actif */}
-      {query.trim() === "" ? (
+      {/* Liste : drag uniquement en mode position sans recherche */}
+      {dragActive ? (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -465,8 +544,8 @@ export function PlaylistClient({ initialSongs }: { initialSongs: Song[] }) {
         </DndContext>
       ) : (
         <div className="space-y-2">
-          {filtered.map((song) => (
-            <SortableRow
+          {displayed.map((song) => (
+            <SongRow
               key={song.id}
               song={song}
               onEdit={setEditingSong}
