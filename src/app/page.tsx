@@ -220,8 +220,7 @@ export default async function Home() {
         <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2 text-amber-400 font-semibold">
-              <ListMusic size={18} />
-              Prochaine répét
+              <ListMusic size={18} />A travailler
             </div>
             <Link
               href="/rehearsals"
