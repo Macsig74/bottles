@@ -109,6 +109,7 @@ export default async function ProposalDetailPage({ params }: { params: Promise<{
               currentStatus={proposal.status}
               proposalTitle={proposal.title}
               proposalArtist={proposal.artist}
+              proposalYoutubeUrl={proposal.youtube_url}
             />
           </div>
         )}

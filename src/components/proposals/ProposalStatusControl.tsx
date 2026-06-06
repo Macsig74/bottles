@@ -10,9 +10,10 @@ interface Props {
   currentStatus: string
   proposalTitle: string
   proposalArtist: string
+  proposalYoutubeUrl?: string | null
 }
 
-export function ProposalStatusControl({ proposalId, currentStatus, proposalTitle, proposalArtist }: Props) {
+export function ProposalStatusControl({ proposalId, currentStatus, proposalTitle, proposalArtist, proposalYoutubeUrl }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -36,6 +37,7 @@ export function ProposalStatusControl({ proposalId, currentStatus, proposalTitle
         await supabase.from('songs').insert({
           title: proposalTitle,
           artist: proposalArtist,
+          youtube_url: proposalYoutubeUrl ?? null,
           added_by: user?.id ?? null,
         })
       }
