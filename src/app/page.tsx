@@ -37,7 +37,9 @@ export default async function Home() {
       .limit(3),
     supabase
       .from("rehearsal_sessions")
-      .select("id, proposed_date, status, rehearsal_songs(song_id, songs(id, title, artist))")
+      .select(
+        "id, proposed_date, status, rehearsal_songs(song_id, songs(id, title, artist))",
+      )
       .gte("proposed_date", now)
       .in("status", ["confirmed", "pending"])
       .order("status", { ascending: true }) // confirmed < pending alphabetically
@@ -52,15 +54,15 @@ export default async function Home() {
   ]);
 
   // Reshape rehearsal songs
-  const nextRehearsalSongs = (nextRehearsal?.rehearsal_songs ?? []).map(
-    (rs: any) => Array.isArray(rs.songs) ? rs.songs[0] : rs.songs
-  ).filter(Boolean) as { id: string; title: string; artist: string }[];
+  const nextRehearsalSongs = (nextRehearsal?.rehearsal_songs ?? [])
+    .map((rs: any) => (Array.isArray(rs.songs) ? rs.songs[0] : rs.songs))
+    .filter(Boolean) as { id: string; title: string; artist: string }[];
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 pb-24 sm:pb-8">
+    <div className="max-w-5xl m x-auto px-4 py-8 pb-24 sm:pb-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white">
           Bonjour, {profile?.name ?? "là"}
@@ -231,9 +233,14 @@ export default async function Home() {
           {nextRehearsal ? (
             <>
               <p className="text-xs text-zinc-500 mb-3">
-                <ClientDate iso={nextRehearsal.proposed_date} fmt="EEE d MMM, HH:mm" />
+                <ClientDate
+                  iso={nextRehearsal.proposed_date}
+                  fmt="EEE d MMM, HH:mm"
+                />
                 {nextRehearsal.status === "confirmed" && (
-                  <span className="ml-2 text-emerald-400 font-medium">● confirmée</span>
+                  <span className="ml-2 text-emerald-400 font-medium">
+                    ● confirmée
+                  </span>
                 )}
               </p>
               <NextRehearsalSongs
@@ -244,7 +251,10 @@ export default async function Home() {
           ) : (
             <p className="text-zinc-500 text-sm mt-3">
               Aucune répétition prévue.{" "}
-              <Link href="/rehearsals/new" className="text-amber-400 hover:underline">
+              <Link
+                href="/rehearsals/new"
+                className="text-amber-400 hover:underline"
+              >
                 Proposer →
               </Link>
             </p>
@@ -253,7 +263,7 @@ export default async function Home() {
       </div>
 
       {/* Guide + patchnotes */}
-      <FeedbackBanner userName={profile?.name ?? "Inconnu"} />
+
       <div className="mt-8 flex items-center justify-center gap-3">
         <Link
           href="/guide"
@@ -268,6 +278,7 @@ export default async function Home() {
           Notes de mise à jour
         </Link>
       </div>
+      <FeedbackBanner userName={profile?.name ?? "Inconnu"} />
     </div>
   );
 }
