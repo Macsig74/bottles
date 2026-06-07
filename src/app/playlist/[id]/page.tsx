@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Music, ExternalLink } from "lucide-react";
 import { SheetMusicSection } from "@/components/playlist/SheetMusicSection";
+import { EditSongButton } from "@/components/playlist/EditSongButton";
 
 export default async function SongPage({
   params,
@@ -32,13 +33,22 @@ export default async function SongPage({
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-24 sm:pb-8">
-      <Link
-        href="/playlist"
-        className="flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors"
-      >
-        <ArrowLeft size={16} />
-        Playlist
-      </Link>
+      <div className="flex items-center justify-between mb-6">
+        <Link
+          href="/playlist"
+          className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
+        >
+          <ArrowLeft size={16} />
+          Playlist
+        </Link>
+        <EditSongButton
+          songId={id}
+          initialTitle={song.title}
+          initialArtist={song.artist}
+          initialYoutubeUrl={song.youtube_url}
+          initialNotes={song.notes}
+        />
+      </div>
 
       <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800 mb-6">
         <div className="flex items-start gap-4">
