@@ -11,18 +11,27 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!,
 );
 
-export async function POST() {
+export async function POST(req: Request) {
   const subscriptions = getAllSubscriptions();
 
   if (subscriptions.length === 0) {
     return NextResponse.json({ error: "Aucun abonné" }, { status: 400 });
   }
 
-  const payload = JSON.stringify({
-    title: "Jai rréussi",
-    body: "ca marche",
-    url: "/",
-  });
+  // Payload custom ou valeur par défaut
+  let title = "The Bottles";
+  let body = "Nouvelle notification";
+  let url = "/";
+  try {
+    const data = await req.json();
+    if (data.title) title = data.title;
+    if (data.body) body = data.body;
+    if (data.url) url = data.url;
+  } catch {
+    // pas de body JSON → valeurs par défaut
+  }
+
+  const payload = JSON.stringify({ title, body, url });
 
   const results = await Promise.allSettled(
     subscriptions.map((sub) =>

@@ -26,6 +26,12 @@ export default function NewRehearsalPage() {
 
     const proposed_date = new Date(`${date}T${time}:00`).toISOString()
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+
     const { error } = await supabase.from('rehearsal_sessions').insert({
       proposed_by: user.id,
       proposed_date,
@@ -36,6 +42,21 @@ export default function NewRehearsalPage() {
       setError(error.message)
       setLoading(false)
     } else {
+      // Notifier tous les abonnés push
+      const d = new Date(proposed_date)
+      const dateLabel = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+      const timeLabel = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      const who = profile?.name ?? 'Quelqu\'un'
+      fetch('/api/send-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: '🎸 Nouvelle répétition proposée',
+          body: `${who} propose le ${dateLabel} à ${timeLabel}`,
+          url: '/rehearsals',
+        }),
+      }).catch(() => {}) // silencieux si pas d'abonnés
+
       router.push('/rehearsals')
       router.refresh()
     }
