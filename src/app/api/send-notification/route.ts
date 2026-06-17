@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import webpush from 'web-push'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createPushClient } from '@/lib/supabase/admin'
 
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT!,
@@ -9,10 +9,10 @@ webpush.setVapidDetails(
 )
 
 export async function POST(req: Request) {
-  const supabase = createAdminClient()
+  const supabase = createPushClient()
   const { data: rows, error: dbError } = await supabase
     .from('push_subscriptions')
-    .select('endpoint, p256dh, auth')
+    .select('subscription')
 
   if (dbError) {
     console.error('Erreur lecture push_subscriptions:', dbError)
@@ -38,28 +38,14 @@ export async function POST(req: Request) {
   const payload = JSON.stringify({ title, body, url })
 
   const results = await Promise.allSettled(
-    rows.map(async (row) => {
-      const sub = {
-        endpoint: row.endpoint,
-        keys: { p256dh: row.p256dh, auth: row.auth },
-      }
-      try {
-        await webpush.sendNotification(sub, payload)
-      } catch (err: unknown) {
-        const webPushErr = err as { statusCode?: number }
-        if (webPushErr.statusCode === 410 || webPushErr.statusCode === 404) {
-          await supabase
-            .from('push_subscriptions')
-            .delete()
-            .eq('endpoint', row.endpoint)
-        }
-        throw err
-      }
-    })
+    rows.map(row =>
+      webpush.sendNotification(row.subscription as webpush.PushSubscription, payload)
+    )
   )
 
-  const sent = results.filter((r) => r.status === 'fulfilled').length
-  const failed = results.filter((r) => r.status === 'rejected').length
+  const sent = results.filter(r => r.status === 'fulfilled').length
+  const failed = results.filter(r => r.status === 'rejected').length
+  if (failed) console.error(`${failed} push(es) échoué(s)`)
 
   return NextResponse.json({ sent, failed })
 }

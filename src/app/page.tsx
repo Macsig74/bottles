@@ -278,6 +278,9 @@ export default async function Home() {
         </Link>
       </div>
       <FeedbackBanner userName={profile?.name ?? "Inconnu"} />
+      <div className="mt-4">
+        <PushNotificationManager userId={user.id} />
+      </div>
     </div>
   );
 }

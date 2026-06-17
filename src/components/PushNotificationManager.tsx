@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Bell, BellOff, Send } from 'lucide-react'
 
-// Convertit la clé VAPID base64url → Uint8Array
 function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -23,7 +22,7 @@ function isStandalone(): boolean {
     ('standalone' in navigator && (navigator as { standalone?: boolean }).standalone === true)
 }
 
-export function PushNotificationManager() {
+export function PushNotificationManager({ userId }: { userId: string }) {
   const [state, setState] = useState<SubscriptionState>('loading')
   const [sendStatus, setSendStatus] = useState<string>('')
   const [ios, setIos] = useState(false)
@@ -43,7 +42,6 @@ export function PushNotificationManager() {
       return
     }
 
-    // Vérifie si déjà abonné
     navigator.serviceWorker.ready.then(reg => {
       reg.pushManager.getSubscription().then(sub => {
         setState(sub ? 'subscribed' : 'unsubscribed')
@@ -71,7 +69,7 @@ export function PushNotificationManager() {
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sub.toJSON()),
+        body: JSON.stringify({ subscription: sub.toJSON(), userId }),
       })
 
       if (!res.ok) throw new Error('Échec enregistrement serveur')
@@ -99,7 +97,6 @@ export function PushNotificationManager() {
     setTimeout(() => setSendStatus(''), 4000)
   }
 
-  // iOS pas en standalone → avertissement
   if (ios && !standalone) {
     return (
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-start gap-3">

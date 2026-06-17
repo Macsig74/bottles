@@ -1,29 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createPushClient } from '@/lib/supabase/admin'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const { subscription, userId } = await req.json()
 
-    if (!body?.endpoint || !body?.keys?.p256dh || !body?.keys?.auth) {
-      return NextResponse.json(
-        { error: 'Subscription invalide — champs manquants' },
-        { status: 400 }
-      )
+    if (!subscription?.endpoint || !userId) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
-    const { error } = await supabase.from('push_subscriptions').upsert({
-      endpoint: body.endpoint,
-      p256dh: body.keys.p256dh,
-      auth: body.keys.auth,
-    }, { onConflict: 'endpoint' })
+    const supabase = createPushClient()
+    const { error } = await supabase.from('push_subscriptions').upsert(
+      {
+        endpoint: subscription.endpoint,
+        user_id: userId,
+        subscription,
+      },
+      { onConflict: 'endpoint' }
+    )
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase push subscription error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
-    return NextResponse.json({ ok: true }, { status: 201 })
+    return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('Erreur subscribe:', err)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    console.error('Subscribe route error:', err)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
