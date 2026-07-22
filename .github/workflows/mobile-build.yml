@@ -84,6 +84,10 @@ jobs:
   # ---------------------------------------------------------------------------
   ios:
     runs-on: macos-latest
+    env:
+      # Le contexte `secrets` n'est pas utilisable dans un `if` :
+      # on le mappe ici pour tester `env.APPLE_TEAM_ID` plus bas.
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -111,13 +115,13 @@ jobs:
 
       # --- Cas 1 : compte Apple configuré → IPA signé installable ------------
       - name: Build IPA signé
-        if: ${{ secrets.APPLE_TEAM_ID != '' }}
+        if: ${{ env.APPLE_TEAM_ID != '' }}
         env:
-          APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_DEVELOPMENT_TEAM: ${{ env.APPLE_TEAM_ID }}
         run: npx tauri ios build --export-method debugging
 
       - name: Upload IPA
-        if: ${{ secrets.APPLE_TEAM_ID != '' }}
+        if: ${{ env.APPLE_TEAM_ID != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: bottles-ios-ipa
@@ -126,5 +130,5 @@ jobs:
 
       # --- Cas 2 : pas de compte Apple → build simulateur (validation) -------
       - name: Build simulateur (validation, non installable sur iPhone réel)
-        if: ${{ secrets.APPLE_TEAM_ID == '' }}
+        if: ${{ env.APPLE_TEAM_ID == '' }}
         run: npx tauri ios build --target aarch64-sim --export-method debugging || echo "Build simulateur terminé (signature requise pour un IPA installable)"
