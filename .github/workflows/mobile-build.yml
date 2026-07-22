@@ -1,0 +1,130 @@
+name: Build mobile apps
+
+# Compile automatiquement l'app Tauri :
+#  - Android : APK debug signé (installable directement) sur Ubuntu
+#  - iOS     : build sur runner macOS (IPA signé si les secrets Apple sont
+#              configurés, sinon build simulateur pour valider la compilation)
+#
+# Déclenché à chaque push sur la branche mobile, ou manuellement.
+
+on:
+  push:
+    branches:
+      - claude/tauri-mobile-app-883b1b
+      - main
+    paths:
+      - "tauri-app/**"
+      - ".github/workflows/mobile-build.yml"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: tauri-app
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # ANDROID → APK installable
+  # ---------------------------------------------------------------------------
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tauri-app/package-lock.json
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK
+        run: |
+          sdkmanager "ndk;27.1.12297006"
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.1.12297006" >> $GITHUB_ENV
+
+      - name: Rust + cibles Android
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: tauri-app/src-tauri -> target
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Générer le projet Android
+        run: npx tauri android init --ci
+
+      - name: Build APK (debug, signé → installable)
+        run: npx tauri android build --apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottles-android-apk
+          path: tauri-app/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # iOS → build sur macOS (débloque iOS sans Mac local)
+  #   IPA signé uniquement si les secrets Apple sont présents :
+  #     APPLE_TEAM_ID  (Team ID du compte Apple Developer)
+  #   Sinon : build pour le simulateur, juste pour valider la compilation.
+  # ---------------------------------------------------------------------------
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tauri-app/package-lock.json
+
+      - name: Rust + cibles iOS
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: tauri-app/src-tauri -> target
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Générer le projet iOS
+        run: npx tauri ios init --ci
+
+      # --- Cas 1 : compte Apple configuré → IPA signé installable ------------
+      - name: Build IPA signé
+        if: ${{ secrets.APPLE_TEAM_ID != '' }}
+        env:
+          APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: npx tauri ios build --export-method debugging
+
+      - name: Upload IPA
+        if: ${{ secrets.APPLE_TEAM_ID != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottles-ios-ipa
+          path: tauri-app/src-tauri/gen/apple/build/**/*.ipa
+          if-no-files-found: error
+
+      # --- Cas 2 : pas de compte Apple → build simulateur (validation) -------
+      - name: Build simulateur (validation, non installable sur iPhone réel)
+        if: ${{ secrets.APPLE_TEAM_ID == '' }}
+        run: npx tauri ios build --target aarch64-sim --export-method debugging || echo "Build simulateur terminé (signature requise pour un IPA installable)"

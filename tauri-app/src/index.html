@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Bottles</title>
+    <script type="module" src="/main.js" defer></script>
+  </head>
+
+  <body>
+    <div class="phone">
+      <header class="app-bar">
+        <span class="brand">🎸 Bottles</span>
+        <span id="platform" class="pill">…</span>
+      </header>
+
+      <main class="content">
+        <h1>Salut 👋</h1>
+        <p class="sub">POC app mobile Tauri — si le rendu te plaît, on branche le vrai site dessus.</p>
+
+        <section class="cards">
+          <a class="card" data-nav="repetitions">
+            <span class="ico">🥁</span>
+            <span class="label">Répètes</span>
+            <span class="meta">Prochaine : à définir</span>
+          </a>
+          <a class="card" data-nav="concerts">
+            <span class="ico">🎤</span>
+            <span class="label">Concerts</span>
+            <span class="meta">Setlists & dates</span>
+          </a>
+          <a class="card" data-nav="propositions">
+            <span class="ico">💡</span>
+            <span class="label">Propositions</span>
+            <span class="meta">Votez les morceaux</span>
+          </a>
+          <a class="card" data-nav="tresorerie">
+            <span class="ico">💰</span>
+            <span class="label">Trésorerie</span>
+            <span class="meta">Comptes du groupe</span>
+          </a>
+        </section>
+
+        <button id="ping" class="cta">Tester le pont natif (Rust)</button>
+        <p id="ping-msg" class="ping-msg"></p>
+      </main>
+
+      <nav class="tabbar">
+        <button class="tab active">Accueil</button>
+        <button class="tab">Biblio</button>
+        <button class="tab">Profil</button>
+      </nav>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,104 @@
+:root {
+  --bg: #0e0f13;
+  --surface: #191b22;
+  --surface-2: #21242e;
+  --text: #f4f5f7;
+  --muted: #9aa0ac;
+  --accent: #7c5cff;
+  --accent-2: #ff5c8a;
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #05060a;
+  color: var(--text);
+}
+
+.phone {
+  max-width: 460px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(120% 80% at 50% -10%, #23263a 0%, var(--bg) 55%);
+}
+
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+  padding-top: max(18px, env(safe-area-inset-top));
+}
+.brand { font-weight: 700; font-size: 18px; letter-spacing: .2px; }
+.pill {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--surface);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.content { flex: 1; padding: 8px 20px 20px; }
+h1 { margin: 6px 0 4px; font-size: 26px; }
+.sub { margin: 0 0 22px; color: var(--muted); font-size: 14px; line-height: 1.4; }
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid #ffffff10;
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform .12s ease, background .12s ease;
+}
+.card:active { transform: scale(.97); background: var(--surface-2); }
+.ico { font-size: 24px; }
+.label { font-weight: 600; font-size: 15px; }
+.meta { font-size: 12px; color: var(--muted); }
+
+.cta {
+  width: 100%;
+  margin-top: 22px;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  cursor: pointer;
+}
+.cta:active { filter: brightness(.9); }
+.ping-msg { text-align: center; color: var(--muted); font-size: 13px; min-height: 18px; margin-top: 10px; }
+
+.tabbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  background: #0c0d12;
+  border-top: 1px solid #ffffff10;
+}
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.tab.active { color: var(--text); background: var(--surface); }
